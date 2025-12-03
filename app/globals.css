@@ -284,6 +284,77 @@ h3 {
   opacity: 0.6;
 }
 
+/* -------------------------------------------------------------- */
+/* Responsive layout (grid system inspired by RankFlow / Uinkits) */
+/* -------------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  .app-layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: stretch;
+    padding: var(--spacing-md) var(--spacing-xl);
+    overflow-x: auto;
+    box-shadow: 0 2px 8px rgba(0, 91, 187, 0.08);
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    gap: 0.5rem;
+    padding: 0;
+    flex: 1;
+    overflow-x: auto;
+  }
+
+  .sidebar-header {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    margin-right: var(--spacing-lg);
+  }
+
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .main-content {
+    height: auto;
+  }
+
+  .landing-builder-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .header h1 {
+    font-size: 1.6rem;
+  }
+
+  .main-content > *:not(.header):not(.result-header) {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+
+  .form-container {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+
+  .landing-preview {
+    padding: var(--spacing-lg);
+  }
+}
+
 .loading {
   text-align: center;
   padding: var(--spacing-xl);
