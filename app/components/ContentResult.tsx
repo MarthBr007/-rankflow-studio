@@ -485,7 +485,8 @@ function createLandingBlocks(normalized: ReturnType<typeof normalizeLanding>): L
       id: 'nextSteps',
       label: 'Volgende stappen',
       type: 'nextSteps',
-      visible: cta.nextSteps?.length > 0
+      // Gebruik een veilige check zodat TypeScript niet klaagt over mogelijk undefined
+      visible: Array.isArray(cta.nextSteps) && cta.nextSteps.length > 0
     }
   ];
 
