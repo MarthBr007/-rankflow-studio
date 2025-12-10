@@ -186,6 +186,7 @@ interface LandingResult {
   // internalLinks?: Array<{ anchor: string; url: string }>; // Verwijderd - gebruik links.internalLinks in plaats daarvan
   ctaSuggestions?: string[];
   schema?: any;
+  aiSummary?: string;
 }
 
 // Blog interface
@@ -397,8 +398,9 @@ function normalizeLanding(landing: LandingResult) {
   const externalLinks = landing.links?.externalLinks || [];
   const clusters = landing.clusters?.contentClusterIdeas || [];
   const headings = landing.headings || [];
+  const aiSummary = landing.aiSummary || '';
 
-  return { seo, content, faq, cta, imageSEO, internalLinks, externalLinks, clusters, headings };
+  return { seo, content, faq, cta, imageSEO, internalLinks, externalLinks, clusters, headings, aiSummary };
 }
 
 function createLandingBlocks(normalized: ReturnType<typeof normalizeLanding>): LandingBlock[] {
@@ -1588,7 +1590,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
   if (type === 'landing') {
     const landing = editedResult as LandingResult;
     const normalized = normalizeLanding(landing);
-    const { seo, content, faq, cta, imageSEO, internalLinks, externalLinks, clusters, headings } = normalized;
+    const { seo, content, faq, cta, imageSEO, internalLinks, externalLinks, clusters, headings, aiSummary } = normalized;
 
     // Gebruik focus keyword om een kort onderwerp-label te tonen in de hero (bijv. "bruiloft", "feestdagen")
     const focusKeyword = seo?.focusKeyword || '';
@@ -2003,6 +2005,25 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        )}
+
+        {landing.schema && (
+          <div className="result-section">
+            <h3>Schema.org Markup (JSON-LD)</h3>
+            <div className="result-content">
+              <pre style={{ 
+                background: '#f5f5f5', 
+                padding: '1rem', 
+                borderRadius: '4px', 
+                overflow: 'auto',
+                fontSize: '0.875rem',
+                maxHeight: '400px'
+              }}>
+                {JSON.stringify(landing.schema, null, 2)}
+              </pre>
+              <CopyButton text={JSON.stringify(landing.schema, null, 2)} />
             </div>
           </div>
         )}
@@ -2465,6 +2486,14 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                       {seo.metaDescription || 'Meta description voor deze pagina.'}
                     </div>
                   </div>
+
+                  {/* AI Summary blok */}
+                  {aiSummary && (
+                    <div className="landing-preview-ai-summary">
+                      <div className="landing-preview-ai-summary-label">AI Samenvatting</div>
+                      <p className="landing-preview-ai-summary-text">{aiSummary}</p>
+                    </div>
+                  )}
 
                   {/* Dynamisch renderen van secties op basis van templateSections */}
                   {templateSections

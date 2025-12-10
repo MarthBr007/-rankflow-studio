@@ -1695,6 +1695,130 @@ async function improveContent(draftJson: any, type: string): Promise<any> {
   }
 }
 
+// AI Summary Generator: genereer een korte samenvatting voor preview
+async function generateAISummary(
+  contentJson: any,
+  contentType: string,
+  topic: string
+): Promise<string | null> {
+  const summaryPrompt = `### AI SUMMARY GENERATOR
+
+Jij genereert een korte, pakkende samenvatting (2-3 zinnen, max 150 woorden) van de gegenereerde content voor een preview blok.
+
+INPUT:
+contentType: ${contentType}
+topic: ${topic}
+content: ${JSON.stringify(contentJson, null, 2).substring(0, 2000)}
+
+REGLES:
+- Schrijf in dezelfde tone of voice als de content (jij-vorm, praktisch, servicegericht)
+- Focus op de belangrijkste voordelen en use cases
+- Gebruik het focus keyword natuurlijk
+- Maximaal 150 woorden
+- Geef alleen de samenvatting terug, geen JSON of extra tekst
+
+OUTPUT:
+Een korte, pakkende samenvatting van 2-3 zinnen.`;
+
+  try {
+    const response = await callAiWithRetry(summaryPrompt, false, 1, 1000);
+    return response.trim();
+  } catch (error) {
+    console.error('Error generating AI summary:', error);
+    return null;
+  }
+}
+
+// Structured Data Generator: genereer Schema.org JSON-LD
+async function generateStructuredData(
+  contentJson: any,
+  contentType: string,
+  topic: string,
+  region1: string,
+  region2: string
+): Promise<any> {
+  const seo = contentJson.seo || contentJson;
+  const focusKeyword = seo.focusKeyword || '';
+  const h1 = contentJson.content?.h1 || contentJson.h1 || contentJson.title || '';
+  const description = seo.metaDescription || contentJson.intro || '';
+  
+  // Bepaal het juiste schema type
+  let schemaType = 'Service';
+  if (contentType === 'product') {
+    schemaType = 'Product';
+  } else if (contentType === 'landing' || contentType === 'categorie') {
+    schemaType = 'Service';
+  }
+
+  const regions = ['Haarlem', region1, region2].filter(Boolean).join(', ');
+  
+  // Basis LocalBusiness schema (altijd aanwezig)
+  const baseSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: 'Broers Verhuur',
+    description: 'Verhuur van evenementen- en horecamateriaal in Haarlem en omgeving',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Haarlem',
+      addressRegion: 'Noord-Holland',
+      addressCountry: 'NL'
+    },
+    areaServed: regions,
+    url: 'https://broersverhuur.nl'
+  };
+
+  // Service schema (voor landing/categorie)
+  if (schemaType === 'Service') {
+    return {
+      '@context': 'https://schema.org',
+      '@graph': [
+        baseSchema,
+        {
+          '@type': 'Service',
+          name: focusKeyword || `${topic} huren`,
+          description: description.substring(0, 200),
+          provider: {
+            '@type': 'LocalBusiness',
+            name: 'Broers Verhuur'
+          },
+          areaServed: {
+            '@type': 'City',
+            name: regions
+          },
+          serviceType: focusKeyword
+        }
+      ]
+    };
+  }
+
+  // Product schema (voor product pagina's)
+  if (schemaType === 'Product') {
+    return {
+      '@context': 'https://schema.org',
+      '@graph': [
+        baseSchema,
+        {
+          '@type': 'Product',
+          name: h1 || focusKeyword,
+          description: description.substring(0, 200),
+          brand: {
+            '@type': 'Brand',
+            name: 'Broers Verhuur'
+          },
+          offers: {
+            '@type': 'Offer',
+            availability: 'https://schema.org/InStock',
+            priceCurrency: 'EUR'
+          }
+        }
+      ]
+    };
+  }
+
+  return baseSchema;
+}
+
 // Refine functie: verbeter bestaande JSON (gebruikt door de "Verbeter deze tekst" knop)
 async function refineContent(existingJson: any): Promise<any> {
   // Haal focus keyword uit input JSON
@@ -2736,6 +2860,30 @@ export async function POST(request: NextRequest) {
 
       // Zorg dat er altijd minimaal één externe uitgaande link is
       ensureExternalLinks(improvedJson, type);
+    }
+    
+    // Genereer AI Summary (korte samenvatting voor preview)
+    console.log('Generating AI summary...');
+    try {
+      const summary = await generateAISummary(improvedJson, type, topic || '');
+      if (summary) {
+        improvedJson.aiSummary = summary;
+      }
+    } catch (error) {
+      console.error('Error generating AI summary:', error);
+      // Non-critical, continue without summary
+    }
+    
+    // Genereer/verbeter Structured Data (Schema.org)
+    console.log('Generating structured data...');
+    try {
+      const structuredData = await generateStructuredData(improvedJson, type, topic || '', fields.region1 || '', fields.region2 || '');
+      if (structuredData) {
+        improvedJson.schema = structuredData;
+      }
+    } catch (error) {
+      console.error('Error generating structured data:', error);
+      // Non-critical, continue without structured data
     }
     
     console.log('Content generation complete!');

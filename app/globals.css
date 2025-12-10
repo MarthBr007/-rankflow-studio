@@ -1793,6 +1793,28 @@ h3 {
   color: #4a5568;
 }
 
+.landing-preview-ai-summary {
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+.landing-preview-ai-summary-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #005BBB;
+  margin-bottom: 0.5rem;
+}
+
+.landing-preview-ai-summary-text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #2e3a44;
+  margin: 0;
+}
+
 .landing-preview-serp-metrics {
   margin-top: 0.6rem;
   display: flex;
