@@ -36,10 +36,13 @@ export default function UserIndicator() {
       </div>
       {showTooltip && (
         <div className="user-indicator-tooltip">
-          <div className="user-indicator-tooltip-name">{user.name || user.email}</div>
-          {user.name && (
-            <div className="user-indicator-tooltip-email">{user.email}</div>
-          )}
+          <div className="user-indicator-tooltip-caret"></div>
+          <div className="user-indicator-tooltip-content">
+            <div className="user-indicator-tooltip-name">{user.name || user.email}</div>
+            {user.name && (
+              <div className="user-indicator-tooltip-email">{user.email}</div>
+            )}
+          </div>
         </div>
       )}
     </div>
