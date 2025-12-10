@@ -1406,10 +1406,14 @@ h3 {
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .landing-preview-fullscreen-button:hover {
   background: #edf2f7;
+  border-color: #2b6cb0;
+  box-shadow: 0 2px 4px rgba(43, 108, 176, 0.1);
 }
 
 .landing-preview-header h3 {
