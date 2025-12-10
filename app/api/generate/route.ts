@@ -2609,7 +2609,7 @@ export async function POST(request: NextRequest) {
     const validation = validateByType(type, draftJson);
     if (!validation.success) {
       return NextResponse.json(
-        { error: `JSON validatie mislukt voor type ${type}: ${validation.error.message}` },
+        { error: `JSON validatie mislukt voor type ${type}: ${validation.error?.message || 'Onbekende fout'}` },
         { status: 500 }
       );
     }
