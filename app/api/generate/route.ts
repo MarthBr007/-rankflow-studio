@@ -2608,8 +2608,10 @@ export async function POST(request: NextRequest) {
     // Valideer basisstructuur per type
     const validation = validateByType(type, draftJson);
     if (!validation.success) {
+      // Type guard: als success false is, is het een SafeParseError
+      const errorMessage = 'error' in validation ? validation.error.message : 'Onbekende validatiefout';
       return NextResponse.json(
-        { error: `JSON validatie mislukt voor type ${type}: ${validation.error?.message || 'Onbekende fout'}` },
+        { error: `JSON validatie mislukt voor type ${type}: ${errorMessage}` },
         { status: 500 }
       );
     }
