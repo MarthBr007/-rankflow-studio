@@ -233,9 +233,9 @@ function Th({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Td({ children }: { children: React.ReactNode }) {
+function Td({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <td style={{ padding: '0.6rem' }}>
+    <td style={{ padding: '0.6rem', ...(style || {}) }}>
       {children}
     </td>
   );
