@@ -6,6 +6,15 @@ const CONFIG_FILE = join(process.cwd(), 'config.json');
 
 // Laad configuratie
 async function loadConfig() {
+  // Prefer environment variables (voor Vercel / productie)
+  if (process.env.OPENAI_API_KEY) {
+    return {
+      apiKey: process.env.OPENAI_API_KEY,
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      provider: process.env.OPENAI_PROVIDER || 'openai',
+    };
+  }
+
   try {
     const data = await readFile(CONFIG_FILE, 'utf-8');
     return JSON.parse(data);
@@ -87,7 +96,7 @@ export async function POST(request: NextRequest) {
       apiKey: (apiKey !== undefined && apiKey.trim() !== '') ? apiKey : existingConfig.apiKey,
     };
 
-    // Sla op
+    // Sla op (alleen lokaal; in Vercel raden we env vars aan)
     await writeFile(CONFIG_FILE, JSON.stringify(updatedConfig, null, 2), 'utf-8');
 
     return NextResponse.json({ 

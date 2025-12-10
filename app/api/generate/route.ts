@@ -17,20 +17,28 @@ async function loadCustomPrompts() {
 
 // Laad configuratie (API key, model, provider)
 async function loadConfig() {
+  // Gebruik altijd env vars als ze gezet zijn (veilig voor Vercel)
+  if (process.env.OPENAI_API_KEY) {
+    return {
+      apiKey: process.env.OPENAI_API_KEY,
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      provider: process.env.OPENAI_PROVIDER || 'openai',
+    };
+  }
+
+  // Anders probeer lokaal config.json (alleen voor lokale dev)
   try {
     const data = await readFile(CONFIG_FILE, 'utf-8');
     const config = JSON.parse(data);
-    // Valideer dat config geldig is
     if (!config || typeof config !== 'object') {
       throw new Error('Ongeldige config format');
     }
     return config;
   } catch (error) {
-    // Fallback naar environment variables
-    console.log('Config file niet gevonden of fout, gebruik environment variables');
+    console.log('Config file niet gevonden of fout, gebruik lege fallback');
     return {
-      apiKey: process.env.OPENAI_API_KEY || '',
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      apiKey: '',
+      model: 'gpt-4o-mini',
       provider: 'openai',
     };
   }

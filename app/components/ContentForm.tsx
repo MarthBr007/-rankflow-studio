@@ -206,29 +206,33 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
         </>
       )}
 
-      <div className="form-group">
-        <label htmlFor="region1">Regio 1</label>
-        <input
-          id="region1"
-          name="region1"
-          type="text"
-          value={formData.region1}
-          onChange={handleChange}
-          required
-        />
-      </div>
+      {formData.type !== 'product' && (
+        <>
+          <div className="form-group">
+            <label htmlFor="region1">Regio 1</label>
+            <input
+              id="region1"
+              name="region1"
+              type="text"
+              value={formData.region1}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-      <div className="form-group">
-        <label htmlFor="region2">Regio 2</label>
-        <input
-          id="region2"
-          name="region2"
-          type="text"
-          value={formData.region2}
-          onChange={handleChange}
-          required
-        />
-      </div>
+          <div className="form-group">
+            <label htmlFor="region2">Regio 2</label>
+            <input
+              id="region2"
+              name="region2"
+              type="text"
+              value={formData.region2}
+              onChange={handleChange}
+              required
+            />
+          </div>
+        </>
+      )}
 
       <button type="submit" className="button" disabled={isLoading}>
         {isLoading ? 'Genereren...' : 'Genereren'}
