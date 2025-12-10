@@ -34,8 +34,8 @@ async function logGenerateCall(data: GenerateLogData): Promise<void> {
         tokensInput: data.tokensInput || null,
         tokensOutput: data.tokensOutput || null,
         success: data.success,
-        errorMessage: data.errorMessage || null,
-        metadata: data.metadata || null,
+        errorMessage: data.errorMessage ?? undefined,
+        metadata: data.metadata ?? undefined,
       },
     });
   } catch (error) {
