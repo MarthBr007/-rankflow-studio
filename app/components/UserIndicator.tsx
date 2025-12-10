@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function UserIndicator() {
-  const [user, setUser] = useState<{ email: string; name?: string } | null>(null);
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [user, setUser] = useState<{ email: string; name?: string; role?: string } | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Load current user
@@ -19,6 +21,20 @@ export default function UserIndicator() {
       .catch(err => console.error('Error loading user:', err));
   }, []);
 
+  const handleLogout = async () => {
+    if (!confirm('Weet je zeker dat je wilt uitloggen?')) {
+      return;
+    }
+    
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   if (!user) return null;
 
   const initials = user.name 
@@ -28,20 +44,37 @@ export default function UserIndicator() {
   return (
     <div 
       className="user-indicator"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
+      onMouseEnter={() => setShowMenu(true)}
+      onMouseLeave={() => setShowMenu(false)}
     >
       <div className="user-indicator-avatar">
         {initials}
       </div>
-      {showTooltip && (
-        <div className="user-indicator-tooltip">
-          <div className="user-indicator-tooltip-caret"></div>
-          <div className="user-indicator-tooltip-content">
-            <div className="user-indicator-tooltip-name">{user.name || user.email}</div>
-            {user.name && (
-              <div className="user-indicator-tooltip-email">{user.email}</div>
-            )}
+      {showMenu && (
+        <div className="user-indicator-menu">
+          <div className="user-indicator-menu-caret"></div>
+          <div className="user-indicator-menu-content">
+            <div className="user-indicator-menu-header">
+              <div className="user-indicator-menu-name">{user.name || user.email}</div>
+              {user.name && (
+                <div className="user-indicator-menu-email">{user.email}</div>
+              )}
+              {user.role && (
+                <div className="user-indicator-menu-role">
+                  <span className={`user-role-badge user-role-${user.role}`}>
+                    {user.role === 'admin' ? 'Admin' : 'Gebruiker'}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="user-indicator-menu-divider"></div>
+            <button 
+              className="user-indicator-menu-logout"
+              onClick={handleLogout}
+            >
+              <LogOut size={16} />
+              <span>Uitloggen</span>
+            </button>
           </div>
         </div>
       )}
