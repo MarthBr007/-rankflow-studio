@@ -1498,13 +1498,13 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
         )}
       </div>
-    ));
+    );
   }
 
   // Categorie pagina
   if (type === 'categorie') {
     const categorie = editedResult as CategorieResult;
-    return renderWrapper((
+    return renderWrapper(
       <div>
         {onRefine && (
           <div className="refine-section">
@@ -1609,7 +1609,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
         )}
       </div>
-    ));
+    );
   }
 
   // Landing pagina
@@ -3187,7 +3187,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
         )}
       </div>
-    ));
+    );
   }
 
   // Blog
@@ -3664,7 +3664,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
         )}
       </div>
-    ));
+    );
   }
 
   // Social
