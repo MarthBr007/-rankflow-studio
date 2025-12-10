@@ -932,7 +932,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
         </h3>
         <div className="result-content">{displayContent}</div>
       </div>
-    );
+    ));
   };
 
   const renderBullets = (title: string, bullets: string[] | string | undefined | null) => {
@@ -1145,7 +1145,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
       }
     };
 
-    return renderWrapper(
+    return renderWrapper((
       <div className="landing-builder">
         {onRefine && (
           <div className="refine-section">
@@ -1486,7 +1486,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
         )}
       </div>
-    );
+    ));
   }
 
   // Categorie pagina
@@ -3175,7 +3175,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
         )}
       </div>
-    );
+    ));
   }
 
   // Blog
