@@ -40,12 +40,18 @@ export default function SettingsPage() {
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const { showToast } = useToast();
   
-  // Tenant / white-label configuratie (client-side opslag)
+  // Tenant / white-label configuratie (server-side via API)
   type TenantConfig = {
     organizationId: string;
     apiKey: string;
     model: string;
     provider: string;
+  };
+  type TenantStatus = {
+    apiKeyMasked?: string;
+    apiKeyLength?: number;
+    updatedAt?: string;
+    exists: boolean;
   };
   const [tenantConfig, setTenantConfig] = useState<TenantConfig>({
     organizationId: '',
@@ -53,8 +59,9 @@ export default function SettingsPage() {
     model: 'gpt-4o-mini',
     provider: 'openai',
   });
-  const [hasTenantKey, setHasTenantKey] = useState(false);
+  const [tenantStatus, setTenantStatus] = useState<TenantStatus>({ exists: false });
   const [isSavingTenant, setIsSavingTenant] = useState(false);
+  const [isLoadingTenant, setIsLoadingTenant] = useState(false);
   
   // Default prompts (fallback als er geen custom prompts zijn)
   const defaultBaseInstruction = `Jij schrijft SEO- en contentteksten voor Broers Verhuur, een verhuurbedrijf voor evenementen en horeca.
@@ -160,25 +167,40 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
     loadSeoRules();
   }, []);
 
-  // Laad tenant config (client-side) bij mount
+  // Laad tenant config (server) bij mount of bij wijziging org/provider
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = localStorage.getItem('rankflow-tenant-config');
-    if (stored) {
+    if (!tenantConfig.organizationId) return;
+    const load = async () => {
+      setIsLoadingTenant(true);
       try {
-        const parsed = JSON.parse(stored) as TenantConfig;
-        setTenantConfig({
-          organizationId: parsed.organizationId || '',
-          apiKey: parsed.apiKey || '',
-          model: parsed.model || 'gpt-4o-mini',
-          provider: parsed.provider || 'openai',
+        const params = new URLSearchParams({
+          tenantId: tenantConfig.organizationId,
+          provider: tenantConfig.provider || 'openai',
         });
-        setHasTenantKey(!!parsed.apiKey);
+        const res = await fetch(`/api/tenant-config?${params.toString()}`);
+        const data = await res.json();
+        if (data.exists) {
+          setTenantStatus({
+            exists: true,
+            apiKeyMasked: data.apiKeyMasked,
+            apiKeyLength: data.apiKeyLength,
+            updatedAt: data.updatedAt,
+          });
+          setTenantConfig(prev => ({
+            ...prev,
+            model: data.model || prev.model,
+          }));
+        } else {
+          setTenantStatus({ exists: false });
+        }
       } catch (e) {
-        console.error('Fout bij laden tenant config:', e);
+        console.error('Fout bij laden tenant credential:', e);
+      } finally {
+        setIsLoadingTenant(false);
       }
-    }
-  }, []);
+    };
+    load();
+  }, [tenantConfig.organizationId, tenantConfig.provider]);
 
   const loadSeoRules = () => {
     if (typeof window !== 'undefined') {
@@ -408,11 +430,15 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
             </div>
           </div>
 
-          {/* Tenant / white-label keys (client-side) */}
+          {/* Tenant / white-label keys (server-side) */}
           <div className="prompt-viewer" style={{ marginTop: '1rem' }}>
             <div className="prompt-header">
-              <h2>Tenant / White-label API Key</h2>
-              {hasTenantKey && <span style={{ color: '#2e7d32', fontSize: '0.9rem' }}>✓ opgeslagen (client-side)</span>}
+              <h2>Tenant / White-label API Key (server-side)</h2>
+              {tenantStatus.exists && (
+                <span style={{ color: '#2e7d32', fontSize: '0.9rem' }}>
+                  ✓ opgeslagen {tenantStatus.apiKeyMasked ? `(${tenantStatus.apiKeyMasked})` : ''}
+                </span>
+              )}
             </div>
             <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
@@ -442,13 +468,13 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                   placeholder="sk-..."
                   style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
                 />
-                {hasTenantKey && (
+                {tenantStatus.apiKeyMasked && (
                   <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
-                    Opslag in localStorage (mask): ****{tenantConfig.apiKey.slice(-4)}
+                    Masked: {tenantStatus.apiKeyMasked}
                   </p>
                 )}
-                <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#c0392b' }}>
-                  Voor productie multi-tenant: gebruik server-side opslag (DB/KMS). Deze variant is client-side.
+                <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
+                  Wordt veilig server-side opgeslagen (versleuteld).
                 </p>
               </div>
 
@@ -488,6 +514,12 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                   Verwijder
                 </button>
               </div>
+              {isLoadingTenant && (
+                <p style={{ fontSize: '0.85rem', color: '#666' }}>Bezig met laden...</p>
+              )}
+              {tenantStatus.updatedAt && (
+                <p style={{ fontSize: '0.85rem', color: '#666' }}>Laatst bijgewerkt: {new Date(tenantStatus.updatedAt).toLocaleString()}</p>
+              )}
             </div>
           </div>
         </>
@@ -666,40 +698,78 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
     }
   };
 
-  // Opslaan tenant-config (client-side, white-label gebruik)
-  const saveTenantConfig = () => {
+  // Opslaan tenant-config (server-side)
+  const saveTenantConfig = async () => {
     setIsSavingTenant(true);
     try {
-      const cleaned = {
-        organizationId: tenantConfig.organizationId.trim(),
+      const payload = {
+        tenantId: tenantConfig.organizationId.trim(),
         apiKey: tenantConfig.apiKey.trim(),
         model: (tenantConfig.model || 'gpt-4o-mini').trim(),
         provider: (tenantConfig.provider || 'openai').trim(),
       };
-      localStorage.setItem('rankflow-tenant-config', JSON.stringify(cleaned));
-      setTenantConfig(cleaned);
-      setHasTenantKey(!!cleaned.apiKey);
-      showToast('Tenant key opgeslagen (client-side)', 'success');
-    } catch (error) {
+
+      if (!payload.tenantId || !payload.apiKey) {
+        showToast('tenantId en apiKey zijn verplicht', 'error');
+        setIsSavingTenant(false);
+        return;
+      }
+
+      const res = await fetch('/api/tenant-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Opslaan mislukt');
+      }
+
+      const data = await res.json();
+      setTenantStatus({
+        exists: true,
+        apiKeyMasked: data.apiKeyMasked,
+        apiKeyLength: data.apiKeyLength || payload.apiKey.length,
+        updatedAt: data.updatedAt,
+      });
+      setTenantConfig(prev => ({ ...prev, apiKey: '' }));
+      showToast('Tenant key opgeslagen (server-side)', 'success');
+    } catch (error: any) {
       console.error('Fout bij opslaan tenant config:', error);
-      showToast('Fout bij opslaan tenant config', 'error');
+      showToast(error.message || 'Fout bij opslaan tenant config', 'error');
     } finally {
       setIsSavingTenant(false);
     }
   };
 
-  const clearTenantConfig = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('rankflow-tenant-config');
+  const clearTenantConfig = async () => {
+    if (!tenantConfig.organizationId) {
+      showToast('Vul eerst een tenant ID in', 'error');
+      return;
     }
-    setTenantConfig({
-      organizationId: '',
-      apiKey: '',
-      model: 'gpt-4o-mini',
-      provider: 'openai',
-    });
-    setHasTenantKey(false);
-    showToast('Tenant key verwijderd', 'success');
+    setIsSavingTenant(true);
+    try {
+      const params = new URLSearchParams({
+        tenantId: tenantConfig.organizationId,
+        provider: tenantConfig.provider || 'openai',
+      });
+      const res = await fetch(`/api/tenant-config?${params.toString()}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Verwijderen mislukt');
+      }
+      setTenantStatus({ exists: false });
+      setTenantConfig(prev => ({ ...prev, apiKey: '' }));
+      showToast('Tenant key verwijderd', 'success');
+    } catch (error: any) {
+      console.error('Fout bij verwijderen tenant config:', error);
+      showToast(error.message || 'Fout bij verwijderen tenant config', 'error');
+    } finally {
+      setIsSavingTenant(false);
+    }
   };
 
   return (

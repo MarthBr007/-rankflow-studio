@@ -84,3 +84,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId') || '';
+    const provider = searchParams.get('provider') || 'openai';
+
+    if (!tenantId) {
+      return NextResponse.json(
+        { error: 'tenantId is verplicht' },
+        { status: 400 }
+      );
+    }
+
+    await prisma.tenantCredential.deleteMany({
+      where: { tenantId, provider },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
+  }
+}
+
