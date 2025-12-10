@@ -4,6 +4,25 @@ import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import CopyButton from '../components/CopyButton';
 import { useToast } from '../components/ToastContainer';
+import { 
+  Bot, 
+  FileText, 
+  Layout, 
+  Folder, 
+  Package, 
+  PenTool, 
+  Share2, 
+  Search, 
+  Users, 
+  UserPlus,
+  Key,
+  Save,
+  X,
+  Edit,
+  Check,
+  AlertCircle,
+  Info
+} from 'lucide-react';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('ai-config');
@@ -66,10 +85,10 @@ export default function SettingsPage() {
   // Tenant Management state
   const [currentOrganizationId, setCurrentOrganizationId] = useState('');
   const [tenantUsers, setTenantUsers] = useState<Array<{ email: string; role: string; createdAt: string }>>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'viewer' | 'editor' | 'admin'>('viewer');
-  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [isLoadingTenantUsers, setIsLoadingTenantUsers] = useState(false);
+  const [newTenantUserEmail, setNewTenantUserEmail] = useState('');
+  const [newTenantUserRole, setNewTenantUserRole] = useState<'viewer' | 'editor' | 'admin'>('viewer');
+  const [isAddingTenantUser, setIsAddingTenantUser] = useState(false);
   const [tenantKeys, setTenantKeys] = useState<Array<{ provider: string; model: string; hasKey: boolean; updatedAt?: string }>>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
 
@@ -534,60 +553,65 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
     if (activeTab === 'ai-config') {
   return (
         <>
-              <div className="prompt-viewer">
-                <div className="prompt-header">
-                  <h2>AI Configuratie</h2>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div className="settings-card">
+                <div className="settings-card-header">
+                  <div className="settings-card-title">
+                    <Bot size={24} />
+                    <h2>AI Configuratie</h2>
+                  </div>
+                  <div className="settings-card-actions">
                     {!isEditingConfig && (
-                  <button className="button" onClick={() => setIsEditingConfig(true)}>
-                        Bewerken
+                      <button className="btn btn-secondary" onClick={() => setIsEditingConfig(true)}>
+                        <Edit size={16} />
+                        <span>Bewerken</span>
                       </button>
                     )}
                     {isEditingConfig && (
                       <>
-                    <button className="button" onClick={saveConfig} disabled={isSavingConfig}>
-                          {isSavingConfig ? 'Opslaan...' : 'Opslaan'}
+                        <button className="btn btn-primary" onClick={saveConfig} disabled={isSavingConfig}>
+                          <Save size={16} />
+                          <span>{isSavingConfig ? 'Opslaan...' : 'Opslaan'}</span>
                         </button>
                         <button
-                          className="button"
-                          style={{ backgroundColor: '#6c757d' }}
+                          className="btn btn-ghost"
                           onClick={() => {
                             setIsEditingConfig(false);
-                            loadConfig(); // Reset naar opgeslagen versie
+                            loadConfig();
                           }}
                           disabled={isSavingConfig}
                         >
-                          Annuleren
+                          <X size={16} />
+                          <span>Annuleren</span>
                         </button>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="prompt-content">
+                <div className="settings-card-body">
                   {isEditingConfig ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                    <div className="settings-form">
+                      <div className="form-group">
+                        <label className="form-label">
                           AI Provider
                         </label>
                         <select
+                          className="form-select"
                           value={aiConfig.provider}
                           onChange={(e) => setAiConfig(prev => ({ ...prev, provider: e.target.value }))}
-                          style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
                         >
                           <option value="openai">OpenAI (ChatGPT)</option>
                           <option value="anthropic">Anthropic (Claude)</option>
                           <option value="google">Google (Gemini)</option>
                         </select>
                       </div>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                      <div className="form-group">
+                        <label className="form-label">
                           Model
                         </label>
                         <select
+                          className="form-select"
                           value={aiConfig.model}
                           onChange={(e) => setAiConfig(prev => ({ ...prev, model: e.target.value }))}
-                          style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
                         >
                           {aiConfig.provider === 'openai' && (
                             <>
@@ -614,32 +638,50 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                           )}
                         </select>
                       </div>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                      <div className="form-group">
+                        <label className="form-label">
                           API Key
                         </label>
                         <input
                           type="password"
+                          className="form-input"
                           value={aiConfig.apiKey}
                           onChange={(e) => setAiConfig(prev => ({ ...prev, apiKey: e.target.value }))}
                           placeholder="Voer je API key in..."
-                          style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
                         />
-                        <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#666' }}>
+                        <p className="form-hint">
+                          <Info size={14} />
                           Je API key wordt veilig opgeslagen lokaal. Laat dit veld leeg om de huidige key te behouden.
                         </p>
                       </div>
                     </div>
                   ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                      <div>
-                        <strong>Provider:</strong> {aiConfig.provider === 'openai' ? 'OpenAI (ChatGPT)' : aiConfig.provider === 'anthropic' ? 'Anthropic (Claude)' : 'Google (Gemini)'}
+                    <div className="settings-info-grid">
+                      <div className="settings-info-item">
+                        <span className="settings-info-label">Provider</span>
+                        <span className="settings-info-value">
+                          {aiConfig.provider === 'openai' ? 'OpenAI (ChatGPT)' : aiConfig.provider === 'anthropic' ? 'Anthropic (Claude)' : 'Google (Gemini)'}
+                        </span>
                       </div>
-                      <div>
-                        <strong>Model:</strong> {aiConfig.model}
+                      <div className="settings-info-item">
+                        <span className="settings-info-label">Model</span>
+                        <span className="settings-info-value">{aiConfig.model}</span>
                       </div>
-                      <div>
-                        <strong>API Key:</strong> {hasApiKey ? '✓ Geconfigureerd' : 'Niet geconfigureerd'}
+                      <div className="settings-info-item">
+                        <span className="settings-info-label">API Key</span>
+                        <span className="settings-info-value">
+                          {hasApiKey ? (
+                            <span className="settings-status settings-status-success">
+                              <Check size={16} />
+                              Geconfigureerd
+                            </span>
+                          ) : (
+                            <span className="settings-status settings-status-warning">
+                              <AlertCircle size={16} />
+                              Niet geconfigureerd
+                            </span>
+                          )}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -647,95 +689,106 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
               </div>
 
           {/* Tenant / white-label keys (server-side) */}
-          <div className="prompt-viewer" style={{ marginTop: '1rem' }}>
-            <div className="prompt-header">
-              <h2>Tenant / White-label API Key (server-side)</h2>
-              {tenantStatus.exists && (
-                <span style={{ color: '#2e7d32', fontSize: '0.9rem' }}>
-                  ✓ opgeslagen {tenantStatus.apiKeyMasked ? `(${tenantStatus.apiKeyMasked})` : ''}
-                </span>
-              )}
-            </div>
-            <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Organisatie / Tenant ID
-                </label>
-                <input
-                  type="text"
-                  value={tenantConfig.organizationId}
-                  onChange={(e) => setTenantConfig(prev => ({ ...prev, organizationId: e.target.value }))}
-                  placeholder="bijv. klant-123"
-                  style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                />
-                <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
-                  Wordt meegestuurd met generate-calls; kies een unieke ID per klant.
-                </p>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  API Key (client-side opslag)
-                </label>
-                <input
-                  type="password"
-                  value={tenantConfig.apiKey}
-                  onChange={(e) => setTenantConfig(prev => ({ ...prev, apiKey: e.target.value }))}
-                  placeholder="sk-..."
-                  style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                />
-                {tenantStatus.apiKeyMasked && (
-                  <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
-                    Masked: {tenantStatus.apiKeyMasked}
-                  </p>
+          <div className="settings-card">
+            <div className="settings-card-header">
+              <div className="settings-card-title">
+                <Key size={24} />
+                <h2>Tenant / White-label API Key (server-side)</h2>
+                {tenantStatus.exists && (
+                  <span className="settings-status settings-status-success" style={{ marginLeft: '1rem' }}>
+                    <Check size={16} />
+                    Opgeslagen {tenantStatus.apiKeyMasked ? `(${tenantStatus.apiKeyMasked})` : ''}
+                  </span>
                 )}
-                <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
-                  Wordt veilig server-side opgeslagen (versleuteld).
-                </p>
               </div>
+            </div>
+            <div className="settings-card-body">
+              <div className="settings-form">
+                <div className="form-group">
+                  <label className="form-label">
+                    Organisatie / Tenant ID
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={tenantConfig.organizationId}
+                    onChange={(e) => setTenantConfig(prev => ({ ...prev, organizationId: e.target.value }))}
+                    placeholder="bijv. klant-123"
+                  />
+                  <p className="form-hint">
+                    <Info size={14} />
+                    Wordt meegestuurd met generate-calls; kies een unieke ID per klant.
+                  </p>
+                </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Provider
-                </label>
-                <select
-                  value={tenantConfig.provider}
-                  onChange={(e) => setTenantConfig(prev => ({ ...prev, provider: e.target.value }))}
-                  style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                >
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic</option>
-                  <option value="google">Google</option>
-                </select>
-              </div>
+                <div className="form-group">
+                  <label className="form-label">
+                    API Key (server-side opslag)
+                  </label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    value={tenantConfig.apiKey}
+                    onChange={(e) => setTenantConfig(prev => ({ ...prev, apiKey: e.target.value }))}
+                    placeholder="sk-..."
+                  />
+                  {tenantStatus.apiKeyMasked && (
+                    <p className="form-hint">
+                      <Info size={14} />
+                      Masked: {tenantStatus.apiKeyMasked}
+                    </p>
+                  )}
+                  <p className="form-hint">
+                    <Info size={14} />
+                    Wordt veilig server-side opgeslagen (versleuteld).
+                  </p>
+                </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Model
-                </label>
-                <input
-                  type="text"
-                  value={tenantConfig.model}
-                  onChange={(e) => setTenantConfig(prev => ({ ...prev, model: e.target.value }))}
-                  placeholder="bijv. gpt-4o-mini"
-                  style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                />
-              </div>
+                <div className="form-group">
+                  <label className="form-label">
+                    Provider
+                  </label>
+                  <select
+                    className="form-select"
+                    value={tenantConfig.provider}
+                    onChange={(e) => setTenantConfig(prev => ({ ...prev, provider: e.target.value }))}
+                  >
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="google">Google</option>
+                  </select>
+                </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button className="button" onClick={saveTenantConfig} disabled={isSavingTenant} style={{ minWidth: '160px' }}>
-                  {isSavingTenant ? 'Opslaan...' : 'Opslaan (tenant)'}
-                </button>
-                <button className="button ghost" type="button" onClick={clearTenantConfig} style={{ minWidth: '140px' }}>
-                  Verwijder
-                </button>
+                <div className="form-group">
+                  <label className="form-label">
+                    Model
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={tenantConfig.model}
+                    onChange={(e) => setTenantConfig(prev => ({ ...prev, model: e.target.value }))}
+                    placeholder="bijv. gpt-4o-mini"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                  <button className="btn btn-primary" onClick={saveTenantConfig} disabled={isSavingTenant}>
+                    <Save size={16} />
+                    <span>{isSavingTenant ? 'Opslaan...' : 'Opslaan (tenant)'}</span>
+                  </button>
+                  <button className="btn btn-ghost" type="button" onClick={clearTenantConfig}>
+                    <X size={16} />
+                    <span>Verwijder</span>
+                  </button>
+                </div>
+                {isLoadingTenant && (
+                  <p className="form-hint">Bezig met laden...</p>
+                )}
+                {tenantStatus.updatedAt && (
+                  <p className="form-hint">Laatst bijgewerkt: {new Date(tenantStatus.updatedAt).toLocaleString()}</p>
+                )}
               </div>
-              {isLoadingTenant && (
-                <p style={{ fontSize: '0.85rem', color: '#666' }}>Bezig met laden...</p>
-              )}
-              {tenantStatus.updatedAt && (
-                <p style={{ fontSize: '0.85rem', color: '#666' }}>Laatst bijgewerkt: {new Date(tenantStatus.updatedAt).toLocaleString()}</p>
-              )}
             </div>
           </div>
         </>
@@ -1027,8 +1080,8 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                       </label>
                       <input
                         type="email"
-                        value={newUserEmail}
-                        onChange={(e) => setNewUserEmail(e.target.value)}
+                        value={newTenantUserEmail}
+                        onChange={(e) => setNewTenantUserEmail(e.target.value)}
                         placeholder="user@example.com"
                         style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
                       />
@@ -1038,8 +1091,8 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                         Rol
                       </label>
                       <select
-                        value={newUserRole}
-                        onChange={(e) => setNewUserRole(e.target.value as 'viewer' | 'editor' | 'admin')}
+                        value={newTenantUserRole}
+                        onChange={(e) => setNewTenantUserRole(e.target.value as 'viewer' | 'editor' | 'admin')}
                         style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
                       >
                         <option value="viewer">Viewer</option>
@@ -1050,9 +1103,9 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                     <button
                       className="button"
                       onClick={addTenantUser}
-                      disabled={isAddingUser || !newUserEmail}
+                      disabled={isAddingTenantUser || !newTenantUserEmail}
                     >
-                      {isAddingUser ? 'Toevoegen...' : 'Toevoegen'}
+                      {isAddingTenantUser ? 'Toevoegen...' : 'Toevoegen'}
                     </button>
                   </div>
                 </div>
@@ -1060,7 +1113,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                 {/* Users List */}
                 <div>
                   <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Bestaande Users</h3>
-                  {isLoadingUsers ? (
+                  {isLoadingTenantUsers ? (
                     <p>Laden...</p>
                   ) : tenantUsers.length === 0 ? (
                     <p style={{ color: '#666', fontStyle: 'italic' }}>Geen users gevonden. Voeg een user toe om te beginnen.</p>
@@ -1088,7 +1141,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <select
                               value={user.role}
-                              onChange={(e) => updateUserRole(user.email, e.target.value as 'viewer' | 'editor' | 'admin')}
+                              onChange={(e) => updateTenantUserRole(user.email, e.target.value as 'viewer' | 'editor' | 'admin')}
                               style={{ padding: '0.35rem', fontSize: '0.9rem', borderRadius: '4px', border: '1px solid #ddd' }}
                             >
                               <option value="viewer">Viewer</option>
@@ -1517,7 +1570,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
   // Tenant Management functions
   const loadTenantUsers = async () => {
     if (!currentOrganizationId) return;
-    setIsLoadingUsers(true);
+    setIsLoadingTenantUsers(true);
     try {
       const response = await fetch(`/api/access-control?organizationId=${currentOrganizationId}&listUsers=true`);
       if (response.ok) {
@@ -1530,7 +1583,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
     } catch (error) {
       console.error('Error loading users:', error);
     } finally {
-      setIsLoadingUsers(false);
+      setIsLoadingTenantUsers(false);
     }
   };
 
@@ -1567,19 +1620,19 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
   };
 
   const addTenantUser = async () => {
-    if (!currentOrganizationId || !newUserEmail) {
+    if (!currentOrganizationId || !newTenantUserEmail) {
       showToast('Vul organisatie ID en email in', 'error');
       return;
     }
-    setIsAddingUser(true);
+    setIsAddingTenantUser(true);
     try {
       const response = await fetch('/api/access-control', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           organizationId: currentOrganizationId,
-          email: newUserEmail,
-          role: newUserRole,
+          email: newTenantUserEmail,
+          role: newTenantUserRole,
         }),
       });
       if (!response.ok) {
@@ -1587,17 +1640,17 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
         throw new Error(data.error || 'Fout bij toevoegen user');
       }
       showToast('User toegevoegd', 'success');
-      setNewUserEmail('');
-      setNewUserRole('viewer');
+      setNewTenantUserEmail('');
+      setNewTenantUserRole('viewer');
       loadTenantUsers();
     } catch (error: any) {
       showToast(error.message || 'Fout bij toevoegen user', 'error');
     } finally {
-      setIsAddingUser(false);
+      setIsAddingTenantUser(false);
     }
   };
 
-  const updateUserRole = async (email: string, newRole: 'viewer' | 'editor' | 'admin') => {
+  const updateTenantUserRole = async (email: string, newRole: 'viewer' | 'editor' | 'admin') => {
     if (!currentOrganizationId) return;
     try {
       const response = await fetch('/api/access-control', {
