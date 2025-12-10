@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
+import { prisma } from '@/app/lib/prisma';
+import { decryptSecret } from '@/app/lib/crypto';
 
 const PROMPTS_FILE = join(process.cwd(), 'prompts.json');
 const CONFIG_FILE = join(process.cwd(), 'config.json');
@@ -52,6 +54,26 @@ type AiOverrideConfig = {
 };
 
 let requestOverrides: AiOverrideConfig | null = null;
+
+async function loadTenantCredential(tenantId?: string): Promise<AiOverrideConfig | null> {
+  if (!tenantId) return null;
+  try {
+    const cred = await prisma.tenantCredential.findFirst({
+      where: { tenantId },
+    });
+    if (!cred) return null;
+    const apiKey = decryptSecret(cred.apiKeyEncrypted);
+    return {
+      apiKey,
+      model: cred.model,
+      provider: cred.provider,
+      organizationId: tenantId,
+    };
+  } catch (e) {
+    console.error('Fout bij laden tenant credential:', e);
+    return null;
+  }
+}
 
 // Vaste merkidentiteit - schrijfstijl Broers Verhuur
 // DEZE STIJL STAAT ALTIJD BOVEN ALLE ANDERE INSTRUCTIES
@@ -2119,12 +2141,15 @@ export async function POST(request: NextRequest) {
 
     const { mode, type, content, apiKeyOverride, modelOverride, providerOverride, organizationId, ...fields } = body;
 
+    // Haal tenant credential indien aanwezig
+    const tenantConfig = await loadTenantCredential(typeof organizationId === 'string' ? organizationId.trim() : undefined);
+
     // Stel request-level overrides in (alleen voor deze request)
     requestOverrides = {
-      apiKey: typeof apiKeyOverride === 'string' ? apiKeyOverride.trim() : undefined,
-      model: typeof modelOverride === 'string' ? modelOverride.trim() : undefined,
-      provider: typeof providerOverride === 'string' ? providerOverride.trim() : undefined,
-      organizationId: typeof organizationId === 'string' ? organizationId.trim() : undefined,
+      apiKey: typeof apiKeyOverride === 'string' && apiKeyOverride.trim() ? apiKeyOverride.trim() : tenantConfig?.apiKey,
+      model: typeof modelOverride === 'string' && modelOverride.trim() ? modelOverride.trim() : tenantConfig?.model,
+      provider: typeof providerOverride === 'string' && providerOverride.trim() ? providerOverride.trim() : tenantConfig?.provider,
+      organizationId: typeof organizationId === 'string' ? organizationId.trim() : tenantConfig?.organizationId,
     };
 
     // Refine mode: verbeter bestaande content

@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TenantCredential {
+  id              String   @id @default(cuid())
+  tenantId        String
+  provider        String
+  model           String
+  apiKeyEncrypted String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, provider])
+}
+
