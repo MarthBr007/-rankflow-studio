@@ -18,6 +18,7 @@ function HomeContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
+  const [tenantConfig, setTenantConfig] = useState<{ organizationId?: string; apiKey?: string; model?: string; provider?: string } | null>(null);
   const { showToast } = useToast();
 
   // Laad sidebar state uit localStorage
@@ -42,6 +43,19 @@ function HomeContent() {
       setContentType(typeFromUrl);
     }
   }, [searchParams]);
+
+  // Laad tenant config uit localStorage (white-label key per klant)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem('rankflow-tenant-config');
+    if (stored) {
+      try {
+        setTenantConfig(JSON.parse(stored));
+      } catch (e) {
+        console.error('Fout bij laden tenant config:', e);
+      }
+    }
+  }, []);
 
   const handleTypeChange = (type: string) => {
     setContentType(type);
@@ -69,7 +83,13 @@ function HomeContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          organizationId: tenantConfig?.organizationId,
+          apiKeyOverride: tenantConfig?.apiKey,
+          modelOverride: tenantConfig?.model,
+          providerOverride: tenantConfig?.provider,
+        }),
         signal: controller.signal,
       });
 

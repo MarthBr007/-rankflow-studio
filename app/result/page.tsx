@@ -20,6 +20,7 @@ function ResultContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [tenantConfig, setTenantConfig] = useState<{ organizationId?: string; apiKey?: string; model?: string; provider?: string } | null>(null);
   const { showToast } = useToast();
 
   // Laad sidebar state uit localStorage
@@ -60,6 +61,19 @@ function ResultContent() {
     setIsLoading(false);
   }, [searchParams]);
 
+  // Laad tenant config uit localStorage (zelfde key voor refine)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem('rankflow-tenant-config');
+    if (stored) {
+      try {
+        setTenantConfig(JSON.parse(stored));
+      } catch (e) {
+        console.error('Fout bij laden tenant config:', e);
+      }
+    }
+  }, []);
+
   const handleRefine = async () => {
     if (!result) return;
 
@@ -75,6 +89,10 @@ function ResultContent() {
         body: JSON.stringify({
           mode: 'refine',
           content: result,
+          organizationId: tenantConfig?.organizationId,
+          apiKeyOverride: tenantConfig?.apiKey,
+          modelOverride: tenantConfig?.model,
+          providerOverride: tenantConfig?.provider,
         }),
       });
 

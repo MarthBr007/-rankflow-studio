@@ -44,6 +44,15 @@ async function loadConfig() {
   }
 }
 
+type AiOverrideConfig = {
+  apiKey?: string;
+  model?: string;
+  provider?: string;
+  organizationId?: string;
+};
+
+let requestOverrides: AiOverrideConfig | null = null;
+
 // Vaste merkidentiteit - schrijfstijl Broers Verhuur
 // DEZE STIJL STAAT ALTIJD BOVEN ALLE ANDERE INSTRUCTIES
 // VERPLICHT VOOR IEDER CONTENT TYPE EN IEDERE OUTPUT ZONDER UITZONDERING
@@ -1258,9 +1267,10 @@ async function callAi(prompt: string, isImprovement = false): Promise<string> {
   const config = await loadConfig();
   console.log('Config loaded, provider:', config.provider, 'model:', config.model);
   
-  const apiKey = config.apiKey || process.env.OPENAI_API_KEY;
-  const model = config.model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
-  const provider = config.provider || 'openai';
+  const override = requestOverrides;
+  const apiKey = override?.apiKey || config.apiKey || process.env.OPENAI_API_KEY;
+  const model = override?.model || config.model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const provider = override?.provider || config.provider || 'openai';
   
   if (!apiKey) {
     throw new Error('API key is niet geconfigureerd. Ga naar Instellingen om een API key in te voeren.');
@@ -2109,7 +2119,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { mode, type, content, ...fields } = body;
+    const { mode, type, content, apiKeyOverride, modelOverride, providerOverride, organizationId, ...fields } = body;
+
+    // Stel request-level overrides in (alleen voor deze request)
+    requestOverrides = {
+      apiKey: typeof apiKeyOverride === 'string' ? apiKeyOverride.trim() : undefined,
+      model: typeof modelOverride === 'string' ? modelOverride.trim() : undefined,
+      provider: typeof providerOverride === 'string' ? providerOverride.trim() : undefined,
+      organizationId: typeof organizationId === 'string' ? organizationId.trim() : undefined,
+    };
 
     // Refine mode: verbeter bestaande content
     if (mode === 'refine') {
@@ -2695,6 +2713,9 @@ export async function POST(request: NextRequest) {
         }
       }
     );
+  } finally {
+    // Reset overrides na afronden request
+    requestOverrides = null;
   }
 }
 

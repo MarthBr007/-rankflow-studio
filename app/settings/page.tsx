@@ -40,6 +40,22 @@ export default function SettingsPage() {
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const { showToast } = useToast();
   
+  // Tenant / white-label configuratie (client-side opslag)
+  type TenantConfig = {
+    organizationId: string;
+    apiKey: string;
+    model: string;
+    provider: string;
+  };
+  const [tenantConfig, setTenantConfig] = useState<TenantConfig>({
+    organizationId: '',
+    apiKey: '',
+    model: 'gpt-4o-mini',
+    provider: 'openai',
+  });
+  const [hasTenantKey, setHasTenantKey] = useState(false);
+  const [isSavingTenant, setIsSavingTenant] = useState(false);
+  
   // Default prompts (fallback als er geen custom prompts zijn)
   const defaultBaseInstruction = `Jij schrijft SEO- en contentteksten voor Broers Verhuur, een verhuurbedrijf voor evenementen en horeca.
 
@@ -264,6 +280,26 @@ De applicatie:
     loadSeoRules();
   }, []);
 
+  // Laad tenant config (client-side) bij mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem('rankflow-tenant-config');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as TenantConfig;
+        setTenantConfig({
+          organizationId: parsed.organizationId || '',
+          apiKey: parsed.apiKey || '',
+          model: parsed.model || 'gpt-4o-mini',
+          provider: parsed.provider || 'openai',
+        });
+        setHasTenantKey(!!parsed.apiKey);
+      } catch (e) {
+        console.error('Fout bij laden tenant config:', e);
+      }
+    }
+  }, []);
+
   const loadSeoRules = () => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('seoRules');
@@ -436,6 +472,42 @@ De applicatie:
     } finally {
       setIsSavingConfig(false);
     }
+  };
+
+  // Opslaan tenant-config (client-side, white-label gebruik)
+  const saveTenantConfig = () => {
+    setIsSavingTenant(true);
+    try {
+      const cleaned = {
+        organizationId: tenantConfig.organizationId.trim(),
+        apiKey: tenantConfig.apiKey.trim(),
+        model: (tenantConfig.model || 'gpt-4o-mini').trim(),
+        provider: (tenantConfig.provider || 'openai').trim(),
+      };
+      localStorage.setItem('rankflow-tenant-config', JSON.stringify(cleaned));
+      setTenantConfig(cleaned);
+      setHasTenantKey(!!cleaned.apiKey);
+      showToast('Tenant key opgeslagen (client-side)', 'success');
+    } catch (error) {
+      console.error('Fout bij opslaan tenant config:', error);
+      showToast('Fout bij opslaan tenant config', 'error');
+    } finally {
+      setIsSavingTenant(false);
+    }
+  };
+
+  const clearTenantConfig = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('rankflow-tenant-config');
+    }
+    setTenantConfig({
+      organizationId: '',
+      apiKey: '',
+      model: 'gpt-4o-mini',
+      provider: 'openai',
+    });
+    setHasTenantKey(false);
+    showToast('Tenant key verwijderd', 'success');
   };
 
   return (
@@ -628,6 +700,91 @@ De applicatie:
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Tenant / white-label keys (client-side) */}
+              <div className="prompt-viewer" style={{ marginTop: '1rem' }}>
+                <div className="prompt-header">
+                  <h2>Tenant / White-label API Key</h2>
+                  {hasTenantKey && (
+                    <span style={{ color: '#2e7d32', fontSize: '0.9rem' }}>✓ opgeslagen (client-side)</span>
+                  )}
+                </div>
+                <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                      Organisatie / Tenant ID
+                    </label>
+                    <input
+                      type="text"
+                      value={tenantConfig.organizationId}
+                      onChange={(e) => setTenantConfig(prev => ({ ...prev, organizationId: e.target.value }))}
+                      placeholder="bijv. klant-123"
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                    />
+                    <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
+                      Wordt meegestuurd met generate-calls; kies een unieke ID per klant.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                      API Key (client-side opslag)
+                    </label>
+                    <input
+                      type="password"
+                      value={tenantConfig.apiKey}
+                      onChange={(e) => setTenantConfig(prev => ({ ...prev, apiKey: e.target.value }))}
+                      placeholder="sk-..."
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                    />
+                    {hasTenantKey && (
+                      <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
+                        Opslag in localStorage (mask): ****{tenantConfig.apiKey.slice(-4)}
+                      </p>
+                    )}
+                    <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#c0392b' }}>
+                      Voor productie multi-tenant: gebruik server-side opslag (DB/KMS). Deze variant is client-side.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                      Provider
+                    </label>
+                    <select
+                      value={tenantConfig.provider}
+                      onChange={(e) => setTenantConfig(prev => ({ ...prev, provider: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                    >
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic</option>
+                      <option value="google">Google</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                      Model
+                    </label>
+                    <input
+                      type="text"
+                      value={tenantConfig.model}
+                      onChange={(e) => setTenantConfig(prev => ({ ...prev, model: e.target.value }))}
+                      placeholder="bijv. gpt-4o-mini"
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button className="button" onClick={saveTenantConfig} disabled={isSavingTenant} style={{ minWidth: '160px' }}>
+                      {isSavingTenant ? 'Opslaan...' : 'Opslaan (tenant)'}
+                    </button>
+                    <button className="button ghost" type="button" onClick={clearTenantConfig} style={{ minWidth: '140px' }}>
+                      Verwijder
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : activeTab === 'seo-rules' ? (
