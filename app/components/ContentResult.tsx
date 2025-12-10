@@ -3962,7 +3962,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
         </div>
       </div>
-    );
+    ));
   }
 
   return null;
