@@ -48,3 +48,33 @@ model GenerateLog {
   @@index([contentType, createdAt])
 }
 
+model LibraryContent {
+  id            String   @id @default(cuid())
+  organizationId String?
+  contentType   String
+  title         String
+  currentVersion Int     @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  versions      LibraryVersion[]
+
+  @@index([organizationId, createdAt])
+  @@index([contentType, createdAt])
+}
+
+model LibraryVersion {
+  id            String   @id @default(cuid())
+  libraryContentId String
+  version       Int
+  data          Json
+  preview       String?
+  metadata      Json?    // model, provider, promptVersion, etc.
+  createdAt     DateTime @default(now())
+
+  libraryContent LibraryContent @relation(fields: [libraryContentId], references: [id], onDelete: Cascade)
+
+  @@unique([libraryContentId, version])
+  @@index([libraryContentId, version])
+}
+

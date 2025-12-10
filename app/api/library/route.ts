@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile, writeFile } from 'fs/promises';
-import { join } from 'path';
-
-const LIBRARY_FILE = join(process.cwd(), 'content-library.json');
+import { prisma } from '@/app/lib/prisma';
 
 interface ContentItem {
   id: string;
@@ -13,23 +10,89 @@ interface ContentItem {
   preview?: string;
 }
 
-// GET: Haal alle opgeslagen content op
-export async function GET() {
+// GET: Haal alle opgeslagen content op (met optionele versie parameter)
+export async function GET(request: NextRequest) {
   try {
-    const data = await readFile(LIBRARY_FILE, 'utf-8');
-    const library = JSON.parse(data);
-    return NextResponse.json(library);
-  } catch (error) {
-    // Als bestand niet bestaat, return lege array
-    return NextResponse.json([]);
+    const { searchParams } = new URL(request.url);
+    const contentId = searchParams.get('id');
+    const version = searchParams.get('version');
+    const organizationId = searchParams.get('organizationId');
+
+    // Haal specifieke versie op
+    if (contentId && version) {
+      const versionNum = parseInt(version, 10);
+      const libraryVersion = await prisma.libraryVersion.findUnique({
+        where: {
+          libraryContentId_version: {
+            libraryContentId: contentId,
+            version: versionNum,
+          },
+        },
+        include: {
+          libraryContent: true,
+        },
+      });
+
+      if (!libraryVersion) {
+        return NextResponse.json({ error: 'Versie niet gevonden' }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        id: libraryVersion.libraryContentId,
+        version: libraryVersion.version,
+        data: libraryVersion.data,
+        preview: libraryVersion.preview,
+        metadata: libraryVersion.metadata,
+        createdAt: libraryVersion.createdAt,
+        title: libraryVersion.libraryContent.title,
+        type: libraryVersion.libraryContent.contentType,
+      });
+    }
+
+    // Haal alle content items op (laatste versie)
+    const where: any = {};
+    if (organizationId) {
+      where.organizationId = organizationId;
+    }
+
+    const libraryItems = await prisma.libraryContent.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        versions: {
+          orderBy: { version: 'desc' },
+          take: 1, // Alleen laatste versie
+        },
+      },
+    });
+
+    const result = libraryItems.map((item) => ({
+      id: item.id,
+      type: item.contentType,
+      title: item.title,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      currentVersion: item.currentVersion,
+      data: item.versions[0]?.data || null,
+      preview: item.versions[0]?.preview || null,
+      versionCount: item.versions.length,
+    }));
+
+    return NextResponse.json(result);
+  } catch (error: any) {
+    console.error('Error loading library:', error);
+    return NextResponse.json(
+      { error: error.message || 'Fout bij het laden van library' },
+      { status: 500 }
+    );
   }
 }
 
-// POST: Sla nieuwe content op
+// POST: Sla nieuwe content op of update bestaande (nieuwe versie)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, title, data } = body;
+    const { id, type, title, data, metadata, organizationId } = body;
 
     if (!type || !title || !data) {
       return NextResponse.json(
@@ -38,33 +101,82 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Laad bestaande library
-    let library: ContentItem[] = [];
-    try {
-      const fileData = await readFile(LIBRARY_FILE, 'utf-8');
-      library = JSON.parse(fileData);
-    } catch (error) {
-      // Bestand bestaat niet, start met lege array
+    const preview = generatePreview(data, type);
+
+    // Als id is opgegeven, voeg nieuwe versie toe aan bestaand item
+    if (id) {
+      const existing = await prisma.libraryContent.findUnique({
+        where: { id },
+        include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
+      });
+
+      if (!existing) {
+        return NextResponse.json({ error: 'Content niet gevonden' }, { status: 404 });
+      }
+
+      const newVersion = existing.currentVersion + 1;
+
+      await prisma.libraryVersion.create({
+        data: {
+          libraryContentId: id,
+          version: newVersion,
+          data,
+          preview,
+          metadata: metadata || null,
+        },
+      });
+
+      await prisma.libraryContent.update({
+        where: { id },
+        data: {
+          currentVersion: newVersion,
+          title, // Update title als die is veranderd
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        id,
+        version: newVersion,
+        message: 'Nieuwe versie opgeslagen',
+      });
     }
 
-    // Maak nieuwe content item
-    const newItem: ContentItem = {
-      id: `content-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type,
-      title,
-      createdAt: new Date().toISOString(),
-      data,
-      preview: generatePreview(data, type),
-    };
+    // Nieuwe content item aanmaken
+    const newContent = await prisma.libraryContent.create({
+      data: {
+        organizationId: organizationId || null,
+        contentType: type,
+        title,
+        currentVersion: 1,
+        versions: {
+          create: {
+            version: 1,
+            data,
+            preview,
+            metadata: metadata || null,
+          },
+        },
+      },
+      include: {
+        versions: true,
+      },
+    });
 
-    // Voeg toe aan library
-    library.unshift(newItem); // Nieuwe items eerst
-
-    // Sla op
-    await writeFile(LIBRARY_FILE, JSON.stringify(library, null, 2), 'utf-8');
-
-    return NextResponse.json({ success: true, item: newItem });
+    return NextResponse.json({
+      success: true,
+      item: {
+        id: newContent.id,
+        type: newContent.contentType,
+        title: newContent.title,
+        createdAt: newContent.createdAt.toISOString(),
+        data: newContent.versions[0].data,
+        preview: newContent.versions[0].preview,
+        version: 1,
+      },
+    });
   } catch (error: any) {
+    console.error('Error saving library content:', error);
     return NextResponse.json(
       { error: error.message || 'Fout bij het opslaan van content' },
       { status: 500 }
@@ -72,7 +184,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE: Verwijder content item
+// DELETE: Verwijder content item (verwijdert alle versies)
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -85,18 +197,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Laad bestaande library
-    const fileData = await readFile(LIBRARY_FILE, 'utf-8');
-    let library: ContentItem[] = JSON.parse(fileData);
-
-    // Verwijder item
-    library = library.filter(item => item.id !== id);
-
-    // Sla op
-    await writeFile(LIBRARY_FILE, JSON.stringify(library, null, 2), 'utf-8');
+    await prisma.libraryContent.delete({
+      where: { id },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    console.error('Error deleting library content:', error);
     return NextResponse.json(
       { error: error.message || 'Fout bij het verwijderen van content' },
       { status: 500 }
