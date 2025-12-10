@@ -2550,17 +2550,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Valideer verplichte velden
-    if (!fields.region1 || !fields.region2) {
-      return NextResponse.json(
-        { error: 'region1 en region2 zijn verplicht' },
-        { status: 400 }
-      );
-    }
-
-    // Valideer regio's voor landingspagina's (moeten uit toegestane lijst komen)
+    // Valideer regio's alleen voor landingspagina's als ze zijn ingevuld
     // Haarlem is altijd toegestaan (vaste regio), alleen region1 en region2 worden gevalideerd
-    if (type === 'landing') {
+    if (type === 'landing' && (fields.region1 || fields.region2)) {
       const normalizedRegions = ALLOWED_REGIONS.map(r => r.toLowerCase());
       const region1Lower = fields.region1?.toString().toLowerCase();
       const region2Lower = fields.region2?.toString().toLowerCase();
