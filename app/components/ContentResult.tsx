@@ -612,6 +612,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
   const [deviceMode, setDeviceMode] = React.useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [landingLayoutMode, setLandingLayoutMode] = React.useState<'blocks' | 'template'>('template');
   const [landingPaneMode, setLandingPaneMode] = React.useState<'both' | 'blocks' | 'preview'>('both');
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false);
   const [productBlocks, setProductBlocks] = React.useState<ProductBlock[] | null>(null);
   const [blogBlocks, setBlogBlocks] = React.useState<BlogBlock[] | null>(null);
   
@@ -2414,71 +2415,81 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
 
           {/* Rechterzijde: live preview */}
-          <div className="landing-preview">
-            <div className="landing-preview-header">
-              <div>
-                <h3>Live preview</h3>
-                <p>Zo ziet de pagina er ongeveer uit op de site.</p>
+          <div className={isPreviewModalOpen ? 'landing-preview-shell landing-preview-shell-overlay' : 'landing-preview-shell'}>
+            <div className="landing-preview">
+              <div className="landing-preview-header">
+                <div>
+                  <h3>Live preview</h3>
+                  <p>Zo ziet de pagina er ongeveer uit op de site.</p>
+                </div>
+                <div className="landing-preview-header-actions">
+                  <div className="landing-preview-layout-toggle">
+                    <button
+                      type="button"
+                      className={
+                        'landing-preview-layout-button' +
+                        (landingLayoutMode === 'template'
+                          ? ' landing-preview-layout-button-active'
+                          : '')
+                      }
+                      onClick={() => setLandingLayoutMode('template')}
+                    >
+                      Template (Broers-stijl)
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        'landing-preview-layout-button' +
+                        (landingLayoutMode === 'blocks'
+                          ? ' landing-preview-layout-button-active'
+                          : '')
+                      }
+                      onClick={() => setLandingLayoutMode('blocks')}
+                    >
+                      Losse blokken
+                    </button>
+                  </div>
+                  <div className="landing-preview-device-toggle">
+                    <button
+                      type="button"
+                      className={
+                        'landing-preview-device-button' +
+                        (deviceMode === 'desktop' ? ' landing-preview-device-button-active' : '')
+                      }
+                      onClick={() => setDeviceMode('desktop')}
+                    >
+                      Desktop
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        'landing-preview-device-button' +
+                        (deviceMode === 'tablet' ? ' landing-preview-device-button-active' : '')
+                      }
+                      onClick={() => setDeviceMode('tablet')}
+                    >
+                      Tablet
+                    </button>
+                    <button
+                      type="button"
+                      className={
+                        'landing-preview-device-button' +
+                        (deviceMode === 'mobile' ? ' landing-preview-device-button-active' : '')
+                      }
+                      onClick={() => setDeviceMode('mobile')}
+                    >
+                      Mobile
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="landing-preview-fullscreen-button"
+                    onClick={() => setIsPreviewModalOpen((prev) => !prev)}
+                  >
+                    {isPreviewModalOpen ? 'Sluit fullscreen' : 'Open fullscreen'}
+                  </button>
+                </div>
               </div>
-              <div className="landing-preview-layout-toggle">
-                <button
-                  type="button"
-                  className={
-                    'landing-preview-layout-button' +
-                    (landingLayoutMode === 'template'
-                      ? ' landing-preview-layout-button-active'
-                      : '')
-                  }
-                  onClick={() => setLandingLayoutMode('template')}
-                >
-                  Template (Broers-stijl)
-                </button>
-                <button
-                  type="button"
-                  className={
-                    'landing-preview-layout-button' +
-                    (landingLayoutMode === 'blocks'
-                      ? ' landing-preview-layout-button-active'
-                      : '')
-                  }
-                  onClick={() => setLandingLayoutMode('blocks')}
-                >
-                  Losse blokken
-                </button>
-              </div>
-              <div className="landing-preview-device-toggle">
-                <button
-                  type="button"
-                  className={
-                    'landing-preview-device-button' +
-                    (deviceMode === 'desktop' ? ' landing-preview-device-button-active' : '')
-                  }
-                  onClick={() => setDeviceMode('desktop')}
-                >
-                  Desktop
-                </button>
-                <button
-                  type="button"
-                  className={
-                    'landing-preview-device-button' +
-                    (deviceMode === 'tablet' ? ' landing-preview-device-button-active' : '')
-                  }
-                  onClick={() => setDeviceMode('tablet')}
-                >
-                  Tablet
-                </button>
-                <button
-                  type="button"
-                  className={
-                    'landing-preview-device-button' +
-                    (deviceMode === 'mobile' ? ' landing-preview-device-button-active' : '')
-                  }
-                  onClick={() => setDeviceMode('mobile')}
-                >
-                  Mobile
-                </button>
-              </div>
-            </div>
 
             <div
               className={
@@ -2514,8 +2525,8 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                     <div className="landing-preview-ai-summary">
                       <div className="landing-preview-ai-summary-label">AI Samenvatting</div>
                       <p className="landing-preview-ai-summary-text">{aiSummary}</p>
-                    </div>
-                  )}
+          </div>
+        )}
 
                   {/* Dynamisch renderen van secties op basis van templateSections */}
                   {templateSections
@@ -2564,18 +2575,18 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                                 <p>
                                   {getContentByField(templateMapping.section1Content)}
                                 </p>
-                                {cta.nextSteps && cta.nextSteps.length > 0 && (
+        {cta.nextSteps && cta.nextSteps.length > 0 && (
                                   <ul className="landing-template-next-steps">
                                     {cta.nextSteps.slice(0, 3).map((step, index) => (
-                                      <li key={index}>{step}</li>
-                                    ))}
-                                  </ul>
+                  <li key={index}>{step}</li>
+                ))}
+              </ul>
                                 )}
-                              </div>
+            </div>
                               <div className="landing-template-col landing-template-col-image">
                                 <div className="landing-template-image-placeholder">
                                   Afbeelding (bijv. mooi gedekte tafel)
-                                </div>
+          </div>
                               </div>
                             </section>
                           );
@@ -2619,9 +2630,9 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                                 {[1, 2, 3, 4, 5].map((num) => (
                                   <div key={num} className="landing-template-gallery-image">
                                     Afbeelding {num}
-                                  </div>
-                                ))}
-                              </div>
+              </div>
+            ))}
+          </div>
                             </section>
                           );
                         case 'products':
@@ -2992,7 +3003,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
         )}
             </div>
           </div>
-        </div>
+            </div>
 
         {/* Template Library Modal */}
         {showTemplateLibrary && (
@@ -3007,7 +3018,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                   >
                     ×
                   </button>
-                </div>
+          </div>
                 <div className="template-modal-content">
                   {savedTemplates.length === 0 ? (
                     <div className="template-empty">
@@ -3160,9 +3171,9 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                     </div>
                   </div>
                 </div>
-              </div>
             </div>
-          )}
+          </div>
+        )}
       </div>
     );
   }
