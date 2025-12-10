@@ -15,7 +15,9 @@ import {
   ChevronRight,
   Library,
   LayoutDashboard,
-  LayoutTemplate
+  LayoutTemplate,
+  LogOut,
+  User
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -33,6 +35,29 @@ function SidebarContent({ activeType, onTypeChange, isCollapsed = false, onToggl
   const isLibrary = pathname === '/library';
   // Dashboard is actief als we op home zijn en geen type parameter hebben
   const isDashboard = pathname === '/' && !searchParams.get('type');
+  const [user, setUser] = useState<{ email: string; name?: string } | null>(null);
+
+  useEffect(() => {
+    // Load current user
+    fetch('/api/auth/session')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUser(data.user);
+        }
+      })
+      .catch(err => console.error('Error loading user:', err));
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   const contentTypes = [
     { id: 'landing', label: 'Landingspagina', description: 'Tafelgerei, 21-diner, feestdagen', icon: FileText },
@@ -188,6 +213,29 @@ function SidebarContent({ activeType, onTypeChange, isCollapsed = false, onToggl
           )}
         </Link>
       </nav>
+      <div className="sidebar-footer">
+        {user && !isCollapsed && (
+          <div className="sidebar-user-info">
+            <div className="sidebar-user-icon">
+              <User size={16} />
+            </div>
+            <div className="sidebar-user-details">
+              <div className="sidebar-user-name">{user.name || user.email}</div>
+              {user.name && (
+                <div className="sidebar-user-email">{user.email}</div>
+              )}
+            </div>
+          </div>
+        )}
+        <button 
+          className="sidebar-logout"
+          onClick={handleLogout}
+          title="Uitloggen"
+        >
+          <LogOut size={18} />
+          {!isCollapsed && <span>Uitloggen</span>}
+        </button>
+      </div>
       {onToggleCollapse && (
         <button 
           className="sidebar-toggle"

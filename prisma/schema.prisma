@@ -78,6 +78,19 @@ model LibraryVersion {
   @@index([libraryContentId, version])
 }
 
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  organizationId String? // Optioneel: voor toekomstige multi-tenant support
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime?
+
+  @@index([email])
+}
+
 model TenantUser {
   id            String   @id @default(cuid())
   organizationId String
