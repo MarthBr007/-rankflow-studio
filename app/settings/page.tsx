@@ -793,6 +793,196 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
       );
     }
 
+    if (activeTab === 'user-management') {
+      if (!isAdmin) {
+        return (
+          <div style={{ padding: '2rem', textAlign: 'center' }}>
+            <p style={{ color: '#666' }}>Alleen admins hebben toegang tot user management.</p>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div>
+            <h2 style={{ marginBottom: '1rem' }}>Gebruikersbeheer</h2>
+            <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+              Beheer alle gebruikers van het systeem. Alleen admins kunnen users aanmaken, bewerken en verwijderen.
+            </p>
+
+            {/* Add User Form */}
+            <div style={{ 
+              background: '#f9f9f9', 
+              padding: '1.5rem', 
+              borderRadius: '8px', 
+              marginBottom: '2rem',
+              border: '1px solid #e0e0e0'
+            }}>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Nieuwe User Toevoegen</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                    Naam (optioneel)
+                  </label>
+                  <input
+                    type="text"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    placeholder="Jouw naam"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '0.9375rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '0.9375rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                    Wachtwoord *
+                  </label>
+                  <input
+                    type="password"
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    placeholder="Minimaal 6 tekens"
+                    required
+                    minLength={6}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '0.9375rem'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                    Rol
+                  </label>
+                  <select
+                    value={newUserRole}
+                    onChange={(e) => setNewUserRole(e.target.value as 'user' | 'admin')}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      fontSize: '0.9375rem'
+                    }}
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <button
+                  className="button"
+                  onClick={addUser}
+                  disabled={isAddingUser || !newUserEmail || !newUserPassword}
+                  style={{ alignSelf: 'flex-start' }}
+                >
+                  {isAddingUser ? 'Toevoegen...' : 'User Toevoegen'}
+                </button>
+              </div>
+            </div>
+
+            {/* Users List */}
+            <div>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Bestaande Users</h3>
+              {isLoadingUsers ? (
+                <p style={{ color: '#666', fontStyle: 'italic' }}>Laden...</p>
+              ) : users.length === 0 ? (
+                <p style={{ color: '#666', fontStyle: 'italic' }}>Geen users gevonden.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {users.map((user) => (
+                    <div
+                      key={user.id}
+                      style={{
+                        background: '#fff',
+                        padding: '1.25rem',
+                        borderRadius: '8px',
+                        border: '1px solid #e0e0e0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '1rem'
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                          {user.name || user.email}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                          {user.name && <div>{user.email}</div>}
+                          <div>
+                            Rol: <strong>{user.role}</strong> • 
+                            Aangemaakt: {new Date(user.createdAt).toLocaleDateString('nl-NL')}
+                            {user.lastLoginAt && (
+                              <> • Laatste login: {new Date(user.lastLoginAt).toLocaleDateString('nl-NL')}</>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <select
+                          value={user.role}
+                          onChange={(e) => updateUserRole(user.id, e.target.value as 'user' | 'admin')}
+                          style={{
+                            padding: '0.5rem',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                        {user.id !== currentUser?.id && (
+                          <button
+                            className="button"
+                            onClick={() => deleteUser(user.id)}
+                            style={{ 
+                              backgroundColor: '#ef4444',
+                              padding: '0.5rem 1rem',
+                              fontSize: '0.875rem'
+                            }}
+                          >
+                            Verwijderen
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (activeTab === 'tenant-management') {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
