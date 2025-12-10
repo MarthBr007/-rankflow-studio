@@ -3664,7 +3664,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
         )}
       </div>
-    );
+    ));
   }
 
   // Social
@@ -3681,7 +3681,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
         ...patch
       }) as ContentResult);
     };
-    return renderWrapper(
+    return renderWrapper((
       <div className="landing-builder">
         {onRefine && (
           <div className="refine-section">
