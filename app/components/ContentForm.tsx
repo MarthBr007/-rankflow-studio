@@ -6,6 +6,7 @@ type ContentType = 'product' | 'categorie' | 'landing' | 'blog' | 'social';
 
 interface FormData {
   type: ContentType;
+  language?: 'nl' | 'en' | 'de' | 'fr';
   // Product fields
   productName?: string;
   category?: string;
@@ -36,6 +37,7 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
     type: defaultType,
     region1: 'Haarlem',
     region2: '',
+    language: 'nl',
   });
   
   // Validation state
@@ -295,6 +297,22 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
           </div>
         </>
       )}
+
+      {/* Language selector */}
+      <div className="form-group">
+        <label htmlFor="language">Taal</label>
+        <select
+          id="language"
+          name="language"
+          value={formData.language || 'nl'}
+          onChange={handleChange}
+        >
+          <option value="nl">Nederlands</option>
+          <option value="en">Engels</option>
+          <option value="de">Duits</option>
+          <option value="fr">Frans</option>
+        </select>
+      </div>
 
       {(formData.type === 'landing' || formData.type === 'categorie' || formData.type === 'social') && (
         <>

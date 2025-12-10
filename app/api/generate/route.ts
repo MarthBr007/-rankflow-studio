@@ -130,6 +130,10 @@ async function loadTenantCredential(tenantId?: string): Promise<AiOverrideConfig
 // VERPLICHT VOOR IEDER CONTENT TYPE EN IEDERE OUTPUT ZONDER UITZONDERING
 const BASE_INSTRUCTION = `Jij schrijft SEO- en contentteksten voor Broers Verhuur, een verhuurbedrijf voor evenementen en horeca.
 
+TAAL:
+- Gebruik de taal die in het veld "{{language}}" is meegegeven (default Nederlands).
+- Vertaal alle output (headings, bullets, FAQ, CTA) in de gekozen taal.
+
 DEZE SCHRIJFSTIJL IS VERPLICHT EN STAAT ALTIJD BOVEN ALLE ANDERE INSTRUCTIES.
 Als iets niet door deze stijlregels wordt toegestaan, mag je het niet gebruiken in de tekst.
 
@@ -221,7 +225,8 @@ const JSON_OUTPUT_RULE = `Belangrijk:
 - Geef de output altijd als geldige JSON terug.
 - Gebruik exact de sleutel namen die in het schema staan.
 - Schrijf geen tekst buiten het JSON object.
-- Gebruik geen streepjes in de tekst zelf.`;
+- Gebruik geen streepjes in de tekst zelf.
+- Houd rekening met de gevraagde taal ({{language}}, default nl). Schrijf ALLE output in de gekozen taal, inclusief headings en FAQ.`;
 
 // Vaste lijst van toegestane regio's
 const ALLOWED_REGIONS = ['Amsterdam', 'Hoofddorp', 'Zandvoort', 'Bloemendaal', 'Aerdenhout', 'Randstad', 'Noord Holland', 'Schiphol regio', 'Aalsmeer', 'Leiden', 'Badhoevedorp', 'Zaandam', 'Schiphol', 'Amsterdam Zuid As', 'IJmuiden', 'IJmond', 'Heemskerk', 'Noordwijkerhout', 'Hillegom', 'Alkmaar', 'Hilversum', 'Bussum', 'Heemstede', 'Purmerend', 'Eemnes'];
@@ -2400,7 +2405,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { mode, type, content, apiKeyOverride, modelOverride, providerOverride, organizationId, ...fields } = body;
+    const { mode, type, content, apiKeyOverride, modelOverride, providerOverride, organizationId, language, ...fields } = body;
     
     // Initialize log data
     logData = {
@@ -2607,7 +2612,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Bouw prompt op met enriched fields (inclusief scenarios)
-    const filledTemplate = replacePlaceholders(template, enrichedFields);
+    const filledTemplate = replacePlaceholders(template, { ...enrichedFields, language: language || 'nl' });
     const fullPrompt = `${baseInstruction}\n\n${filledTemplate}`;
 
     // Eerste call: maak draft (met retry logica)
