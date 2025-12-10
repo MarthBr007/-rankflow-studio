@@ -17,6 +17,7 @@ import {
   Search,
   X
 } from 'lucide-react';
+import { useRef } from 'react';
 
 interface ContentItem {
   id: string;
@@ -50,6 +51,7 @@ function LibraryContent() {
   const [diff, setDiff] = useState<any | null>(null);
   const [isLoadingDiff, setIsLoadingDiff] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Laad sidebar state
   useEffect(() => {
@@ -277,6 +279,44 @@ function LibraryContent() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      const items = Array.isArray(json) ? json : [json];
+      let success = 0;
+      for (const item of items) {
+        const payload = {
+          type: item.type || item.contentType,
+          title: item.title || 'Imported item',
+          data: item.data || item,
+        };
+        if (!payload.type || !payload.data) continue;
+        await fetch('/api/library', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        success += 1;
+      }
+      showToast(`Import gereed: ${success} item(s)`, 'success');
+      loadLibrary();
+    } catch (error) {
+      console.error('Import error:', error);
+      showToast('Fout bij importeren (controleer JSON)', 'error');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const filteredLibrary = library.filter(item => {
@@ -523,11 +563,21 @@ function LibraryContent() {
                   <button className="button" onClick={exportSelected}>
                     Exporteer JSON
                   </button>
+                  <button className="button ghost" onClick={handleImportClick}>
+                    Importeer JSON
+                  </button>
                   <button className="button" style={{ backgroundColor: '#dc3545' }} onClick={bulkDelete}>
                     Bulk verwijderen
                   </button>
                 </div>
               )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json"
+                style={{ display: 'none' }}
+                onChange={handleImport}
+              />
             </div>
 
             {filteredLibrary.length === 0 ? (
