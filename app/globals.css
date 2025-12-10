@@ -2647,8 +2647,8 @@ h3 {
 }
 
 .user-indicator-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: white;
@@ -2657,8 +2657,9 @@ h3 {
   justify-content: center;
   font-weight: 600;
   font-size: 0.875rem;
-  box-shadow: 0 2px 4px rgba(0, 91, 187, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 91, 187, 0.25);
   transition: all 0.2s;
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .user-indicator-avatar:hover {
