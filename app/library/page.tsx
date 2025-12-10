@@ -41,6 +41,7 @@ function LibraryContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
   const { showToast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [versions, setVersions] = useState<Array<{ version: number; createdAt: string }>>([]);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
@@ -236,6 +237,46 @@ function LibraryContent() {
       social: 'Social Media',
     };
     return labels[type] || type;
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const clearSelection = () => setSelectedIds([]);
+
+  const bulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Weet je zeker dat je ${selectedIds.length} item(s) wilt verwijderen?`)) return;
+    try {
+      await Promise.all(selectedIds.map((id) =>
+        fetch(`/api/library?id=${id}`, { method: 'DELETE' })
+      ));
+      setLibrary(prev => prev.filter(item => !selectedIds.includes(item.id)));
+      clearSelection();
+      if (selectedItem && selectedIds.includes(selectedItem.id)) {
+        setSelectedItem(null);
+        router.push('/library');
+      }
+      showToast('Items verwijderd', 'success');
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      showToast('Fout bij bulk verwijderen', 'error');
+    }
+  };
+
+  const exportSelected = () => {
+    if (selectedIds.length === 0) return;
+    const items = library.filter(item => selectedIds.includes(item.id));
+    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `library-export-${selectedIds.length}-items.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   const filteredLibrary = library.filter(item => {
@@ -471,6 +512,22 @@ function LibraryContent() {
                   </button>
                 )}
               </div>
+              {selectedIds.length > 0 && (
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ fontSize: '0.95rem' }}>
+                    {selectedIds.length} geselecteerd
+                  </div>
+                  <button className="button ghost" onClick={clearSelection}>
+                    Selectie wissen
+                  </button>
+                  <button className="button" onClick={exportSelected}>
+                    Exporteer JSON
+                  </button>
+                  <button className="button" style={{ backgroundColor: '#dc3545' }} onClick={bulkDelete}>
+                    Bulk verwijderen
+                  </button>
+                </div>
+              )}
             </div>
 
             {filteredLibrary.length === 0 ? (
@@ -502,7 +559,14 @@ function LibraryContent() {
                         {itemsOfType.map((item) => {
                           const Icon = getTypeIcon(item.type);
                           return (
-                            <div key={item.id} className="library-card">
+                            <div key={item.id} className="library-card" style={{ position: 'relative' }}>
+                              <div style={{ position: 'absolute', top: '8px', left: '8px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIds.includes(item.id)}
+                                  onChange={() => toggleSelect(item.id)}
+                                />
+                              </div>
                               <div className="library-card-header">
                                 <div className="library-card-icon" style={{ 
                                   backgroundColor: item.type === 'landing' ? '#e3f2fd' : 
