@@ -1145,7 +1145,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
       }
     };
 
-    return renderWrapper((
+    return renderWrapper(
       <div className="landing-builder">
         {onRefine && (
           <div className="refine-section">
@@ -1960,7 +1960,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
       { value: 'situationsTitle', label: 'Situaties titel' },
     ];
     
-    return renderWrapper((
+    return renderWrapper(
       <div className="landing-builder">
         {onRefine && (
           <div className="refine-section">
@@ -3311,7 +3311,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
       }
     };
 
-    return renderWrapper((
+    return renderWrapper(
       <div className="landing-builder">
         {onRefine && (
           <div className="refine-section">
@@ -3681,7 +3681,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
         ...patch
       }) as ContentResult);
     };
-    return renderWrapper((
+    return renderWrapper(
       <div className="landing-builder">
         {onRefine && (
           <div className="refine-section">
