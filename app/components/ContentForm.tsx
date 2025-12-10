@@ -34,9 +34,12 @@ interface ContentFormProps {
 export default function ContentForm({ onSubmit, isLoading, defaultType = 'landing' }: ContentFormProps) {
   const [formData, setFormData] = useState<FormData>({
     type: defaultType,
-    region1: '',
+    region1: 'Haarlem',
     region2: '',
   });
+  
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Update type when defaultType changes
   useEffect(() => {
@@ -50,8 +53,42 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Inline validation per content type
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (formData.type === 'landing' && formData.topic) {
+      const topicWords = formData.topic.trim().split(/\s+/).length;
+      if (topicWords > 5) {
+        errors.topic = 'Onderwerp moet kort zijn (max 5 woorden)';
+      }
+    }
+    
+    if (formData.type === 'blog' && formData.subject) {
+      const subjectWords = formData.subject.trim().split(/\s+/).length;
+      if (subjectWords > 10) {
+        errors.subject = 'Titel moet kort zijn (max 10 woorden)';
+      }
+    }
+    
+    if (formData.type === 'social' && formData.subject) {
+      const subjectLength = formData.subject.length;
+      if (formData.platform === 'Instagram' && subjectLength > 2200) {
+        errors.subject = 'Instagram posts zijn maximaal 2200 karakters';
+      } else if (formData.platform === 'LinkedIn' && subjectLength > 3000) {
+        errors.subject = 'LinkedIn posts zijn maximaal 3000 karakters';
+      }
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
     await onSubmit(formData);
   };
 
@@ -135,6 +172,14 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               onChange={handleChange}
               required
             />
+            {validationErrors.topic && (
+              <div style={{ color: '#E53935', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                {validationErrors.topic}
+              </div>
+            )}
+            <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
+              Minimaal 400 woorden, maximaal 600 woorden voor landingspagina's
+            </div>
           </div>
           <div className="form-group">
             <label htmlFor="goal">Doel (wat de bezoeker wil bereiken)</label>
@@ -161,6 +206,14 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               onChange={handleChange}
               required
             />
+            {validationErrors.subject && (
+              <div style={{ color: '#E53935', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                {validationErrors.subject}
+              </div>
+            )}
+            <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
+              Blog posts: minimaal 800 woorden, maximaal 2000 woorden
+            </div>
           </div>
           <div className="form-group">
             <label htmlFor="targetAudience">Doelgroep</label>
@@ -188,6 +241,11 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               onChange={handleChange}
               required
             />
+            {validationErrors.subject && (
+              <div style={{ color: '#E53935', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                {validationErrors.subject}
+              </div>
+            )}
           </div>
           <div className="form-group">
             <label htmlFor="platform">Platform</label>
@@ -202,6 +260,38 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               <option value="Instagram">Instagram</option>
               <option value="LinkedIn">LinkedIn</option>
             </select>
+            {formData.platform && (
+              <div style={{ 
+                marginTop: '0.5rem', 
+                padding: '0.75rem', 
+                background: '#f0f9ff', 
+                borderRadius: '4px',
+                fontSize: '0.875rem',
+                color: '#2e3a44'
+              }}>
+                {formData.platform === 'Instagram' ? (
+                  <>
+                    <strong>Instagram hints:</strong>
+                    <ul style={{ marginTop: '0.25rem', marginLeft: '1.25rem' }}>
+                      <li>Max 2200 karakters per post</li>
+                      <li>Gebruik 1-3 emoji's voor engagement</li>
+                      <li>Hashtags: 5-10 relevante tags</li>
+                      <li>Call-to-action aan het einde</li>
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <strong>LinkedIn hints:</strong>
+                    <ul style={{ marginTop: '0.25rem', marginLeft: '1.25rem' }}>
+                      <li>Max 3000 karakters per post</li>
+                      <li>Professionele toon, minder emoji's</li>
+                      <li>Hashtags: 3-5 relevante tags</li>
+                      <li>Focus op waarde en expertise</li>
+                    </ul>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -216,7 +306,11 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               type="text"
               value={formData.region1}
               onChange={handleChange}
+              placeholder="Haarlem (default)"
             />
+            <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
+              Haarlem is standaard ingevuld. Wijzig indien nodig.
+            </div>
           </div>
 
           <div className="form-group">
@@ -227,7 +321,11 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               type="text"
               value={formData.region2}
               onChange={handleChange}
+              placeholder="bijv. Amsterdam, Hoofddorp"
             />
+            <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
+              Toegestane regio's: Amsterdam, Hoofddorp, Zandvoort, Bloemendaal, etc.
+            </div>
           </div>
         </>
       )}
