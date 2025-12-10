@@ -1097,7 +1097,6 @@ Verplicht:
 - praktische tips of inspiratie
 - scenario's gebruiken
 - materialen benoemen
-- regio's: Haarlem, {{region1}}, {{region2}}
 - geen streepjes
 
 Gebruik de tone-of-voice van Broers Verhuur:
@@ -1143,7 +1142,7 @@ Gebruik bij iedere post één van deze content types:
 12. Storytelling moment
 
 Onderwerp: {{subject}}
-Regio's: Haarlem, {{region1}}, {{region2}}
+Regio's: Haarlem, {{region1}}, {{region2}} (alleen gebruiken in hashtags of als het logisch is; niet verplicht in de lopende tekst)
 
 Geef de output uitsluitend als JSON in het volgende schema:
 {
@@ -1208,14 +1207,13 @@ HASHTAGS:
 - Gebruik maximaal 8 hashtags
 - nooit over-optimised
 - geen random woorden
-- altijd logisch: evenementen, feest, verhuur, servies, glaswerk, styling, Haarlem
+- altijd logisch: evenementen, feest, verhuur, servies, glaswerk, styling, Haarlem (regio's mogen in hashtags)
 
 Validatie:
 - NOOIT tekst buiten JSON
 - Alle 4 varianten moeten gegenereerd worden
 - Minimaal 1 scenario per variant
 - Minimaal 1 materiaal per variant
-- Regio's in alle varianten
 
 ${QUALITY_INSTRUCTIONS}`,
 };
