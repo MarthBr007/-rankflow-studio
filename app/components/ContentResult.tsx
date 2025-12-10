@@ -1145,7 +1145,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
       }
     };
 
-    const productContent = (
+    return renderWrapper(
       <div className="landing-builder">
         {onRefine && (
           <div className="refine-section">
@@ -1499,8 +1499,6 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
         )}
       </div>
     );
-
-    return renderWrapper(productContent);
   }
 
   // Categorie pagina
