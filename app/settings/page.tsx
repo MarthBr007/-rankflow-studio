@@ -72,6 +72,15 @@ export default function SettingsPage() {
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [tenantKeys, setTenantKeys] = useState<Array<{ provider: string; model: string; hasKey: boolean; updatedAt?: string }>>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
+
+  // Prompt versiebeheer state
+  const [promptTenantId, setPromptTenantId] = useState('global');
+  const [promptVersions, setPromptVersions] = useState<Array<{ version: number; createdAt: string }>>([]);
+  const [selectedPromptVersion, setSelectedPromptVersion] = useState<number | null>(null);
+  const [selectedPromptData, setSelectedPromptData] = useState<Record<string, string> | null>(null);
+  const [isLoadingPromptVersions, setIsLoadingPromptVersions] = useState(false);
+  const [isLoadingPromptVersion, setIsLoadingPromptVersion] = useState(false);
+  const [isDiffMode, setIsDiffMode] = useState(false);
   
   // Default prompts (fallback als er geen custom prompts zijn)
   const defaultBaseInstruction = `Jij schrijft SEO- en contentteksten voor Broers Verhuur, een verhuurbedrijf voor evenementen en horeca.
@@ -245,7 +254,9 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
 
   const loadPrompts = async () => {
     try {
-      const response = await fetch('/api/prompts');
+      const params = new URLSearchParams();
+      if (promptTenantId) params.append('tenantId', promptTenantId);
+      const response = await fetch(`/api/prompts?${params.toString()}`);
       const data = await response.json();
       if (data.prompts) {
         // Gebruik opgeslagen prompts, vul lege velden aan met defaults
@@ -284,7 +295,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompts }),
+        body: JSON.stringify({ prompts, tenantId: promptTenantId || 'global' }),
       });
 
       if (!response.ok) {
@@ -324,121 +335,181 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
     setPrompts(prev => ({ ...prev, [tab]: value }));
   };
 
+  const loadPromptVersions = async () => {
+    if (!promptTenantId) return;
+    setIsLoadingPromptVersions(true);
+    try {
+      const res = await fetch(`/api/prompts/versions?tenantId=${promptTenantId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPromptVersions(data);
+        // Reset selectie bij tenant wissel
+        setSelectedPromptVersion(null);
+        setSelectedPromptData(null);
+        setIsDiffMode(false);
+      }
+    } catch (error) {
+      console.error('Error loading prompt versions:', error);
+    } finally {
+      setIsLoadingPromptVersions(false);
+    }
+  };
+
+  const loadPromptVersionData = async (version: number) => {
+    setIsLoadingPromptVersion(true);
+    try {
+      const res = await fetch(`/api/prompts/versions?tenantId=${promptTenantId}&version=${version}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedPromptData(data.prompts || null);
+      }
+    } catch (error) {
+      console.error('Error loading prompt version data:', error);
+    } finally {
+      setIsLoadingPromptVersion(false);
+    }
+  };
+
+  const rollbackPromptVersion = async () => {
+    if (!selectedPromptVersion || !selectedPromptData) return;
+    setIsSaving(true);
+    setSaveMessage(null);
+    try {
+      const response = await fetch('/api/prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompts: selectedPromptData, tenantId: promptTenantId || 'global' }),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Rollback mislukt');
+      }
+      showToast(`Rollback uitgevoerd naar versie ${selectedPromptVersion}`, 'success');
+      // refresh huidige prompts en versie lijst
+      loadPrompts();
+      loadPromptVersions();
+    } catch (error: any) {
+      showToast(error.message || 'Rollback mislukt', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const renderContent = () => {
     if (activeTab === 'ai-config') {
-      return (
+  return (
         <>
-          <div className="prompt-viewer">
-            <div className="prompt-header">
-              <h2>AI Configuratie</h2>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                {!isEditingConfig && (
+              <div className="prompt-viewer">
+                <div className="prompt-header">
+                  <h2>AI Configuratie</h2>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {!isEditingConfig && (
                   <button className="button" onClick={() => setIsEditingConfig(true)}>
-                    Bewerken
-                  </button>
-                )}
-                {isEditingConfig && (
-                  <>
+                        Bewerken
+                      </button>
+                    )}
+                    {isEditingConfig && (
+                      <>
                     <button className="button" onClick={saveConfig} disabled={isSavingConfig}>
-                      {isSavingConfig ? 'Opslaan...' : 'Opslaan'}
-                    </button>
-                    <button
-                      className="button"
-                      style={{ backgroundColor: '#6c757d' }}
-                      onClick={() => {
-                        setIsEditingConfig(false);
-                        loadConfig(); // Reset naar opgeslagen versie
-                      }}
-                      disabled={isSavingConfig}
-                    >
-                      Annuleren
-                    </button>
-                  </>
-                )}
+                          {isSavingConfig ? 'Opslaan...' : 'Opslaan'}
+                        </button>
+                        <button
+                          className="button"
+                          style={{ backgroundColor: '#6c757d' }}
+                          onClick={() => {
+                            setIsEditingConfig(false);
+                            loadConfig(); // Reset naar opgeslagen versie
+                          }}
+                          disabled={isSavingConfig}
+                        >
+                          Annuleren
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="prompt-content">
+                  {isEditingConfig ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                          AI Provider
+                        </label>
+                        <select
+                          value={aiConfig.provider}
+                          onChange={(e) => setAiConfig(prev => ({ ...prev, provider: e.target.value }))}
+                          style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                        >
+                          <option value="openai">OpenAI (ChatGPT)</option>
+                          <option value="anthropic">Anthropic (Claude)</option>
+                          <option value="google">Google (Gemini)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                          Model
+                        </label>
+                        <select
+                          value={aiConfig.model}
+                          onChange={(e) => setAiConfig(prev => ({ ...prev, model: e.target.value }))}
+                          style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                        >
+                          {aiConfig.provider === 'openai' && (
+                            <>
+                              <option value="gpt-4o">GPT-4o</option>
+                              <option value="gpt-4o-mini">GPT-4o Mini</option>
+                              <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                              <option value="gpt-4">GPT-4</option>
+                              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                            </>
+                          )}
+                          {aiConfig.provider === 'anthropic' && (
+                            <>
+                              <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                              <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                              <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+                              <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                            </>
+                          )}
+                          {aiConfig.provider === 'google' && (
+                            <>
+                              <option value="gemini-pro">Gemini Pro</option>
+                              <option value="gemini-pro-vision">Gemini Pro Vision</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                          API Key
+                        </label>
+                        <input
+                          type="password"
+                          value={aiConfig.apiKey}
+                          onChange={(e) => setAiConfig(prev => ({ ...prev, apiKey: e.target.value }))}
+                          placeholder="Voer je API key in..."
+                          style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                        />
+                        <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#666' }}>
+                          Je API key wordt veilig opgeslagen lokaal. Laat dit veld leeg om de huidige key te behouden.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                      <div>
+                        <strong>Provider:</strong> {aiConfig.provider === 'openai' ? 'OpenAI (ChatGPT)' : aiConfig.provider === 'anthropic' ? 'Anthropic (Claude)' : 'Google (Gemini)'}
+                      </div>
+                      <div>
+                        <strong>Model:</strong> {aiConfig.model}
+                      </div>
+                      <div>
+                        <strong>API Key:</strong> {hasApiKey ? '✓ Geconfigureerd' : 'Niet geconfigureerd'}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="prompt-content">
-              {isEditingConfig ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                      AI Provider
-                    </label>
-                    <select
-                      value={aiConfig.provider}
-                      onChange={(e) => setAiConfig(prev => ({ ...prev, provider: e.target.value }))}
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                    >
-                      <option value="openai">OpenAI (ChatGPT)</option>
-                      <option value="anthropic">Anthropic (Claude)</option>
-                      <option value="google">Google (Gemini)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                      Model
-                    </label>
-                    <select
-                      value={aiConfig.model}
-                      onChange={(e) => setAiConfig(prev => ({ ...prev, model: e.target.value }))}
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                    >
-                      {aiConfig.provider === 'openai' && (
-                        <>
-                          <option value="gpt-4o">GPT-4o</option>
-                          <option value="gpt-4o-mini">GPT-4o Mini</option>
-                          <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                          <option value="gpt-4">GPT-4</option>
-                          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                        </>
-                      )}
-                      {aiConfig.provider === 'anthropic' && (
-                        <>
-                          <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                          <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                          <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
-                          <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
-                        </>
-                      )}
-                      {aiConfig.provider === 'google' && (
-                        <>
-                          <option value="gemini-pro">Gemini Pro</option>
-                          <option value="gemini-pro-vision">Gemini Pro Vision</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                      API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={aiConfig.apiKey}
-                      onChange={(e) => setAiConfig(prev => ({ ...prev, apiKey: e.target.value }))}
-                      placeholder="Voer je API key in..."
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                    />
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#666' }}>
-                      Je API key wordt veilig opgeslagen lokaal. Laat dit veld leeg om de huidige key te behouden.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div>
-                    <strong>Provider:</strong> {aiConfig.provider === 'openai' ? 'OpenAI (ChatGPT)' : aiConfig.provider === 'anthropic' ? 'Anthropic (Claude)' : 'Google (Gemini)'}
-                  </div>
-                  <div>
-                    <strong>Model:</strong> {aiConfig.model}
-                  </div>
-                  <div>
-                    <strong>API Key:</strong> {hasApiKey ? '✓ Geconfigureerd' : 'Niet geconfigureerd'}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Tenant / white-label keys (server-side) */}
           <div className="prompt-viewer" style={{ marginTop: '1rem' }}>
@@ -798,59 +869,180 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
 
     return (
       <>
+        {/* Prompt versiebeheer */}
         <div className="prompt-viewer">
           <div className="prompt-header">
-            <h2>
-              {activeTab === 'base' && 'Basis Instructie (gebruikt door alle types)'}
-              {activeTab === 'landing' && 'Landingspagina Prompt'}
-              {activeTab === 'categorie' && 'Categoriepagina Prompt'}
-              {activeTab === 'product' && 'Productpagina Prompt'}
-              {activeTab === 'blog' && 'Blog Prompt'}
-              {activeTab === 'social' && 'Social Media Prompt'}
-              {activeTab === 'seo-rules' && 'SEO Regels'}
-            </h2>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {!isEditing && (
-                <>
-                  <CopyButton text={getFullPrompt(activeTab)} />
-                  <button className="button" onClick={() => setIsEditing(true)}>
-                    Bewerken
-                  </button>
-                </>
-              )}
-              {isEditing && (
-                <>
-                  <button className="button" onClick={savePrompts} disabled={isSaving}>
-                    {isSaving ? 'Opslaan...' : 'Opslaan'}
-                  </button>
-                  <button
-                    className="button"
-                    style={{ backgroundColor: '#6c757d' }}
-                    onClick={() => {
-                      setIsEditing(false);
-                      loadPrompts(); // Reset naar opgeslagen versie
-                    }}
-                    disabled={isSaving}
-                  >
-                    Annuleren
-                  </button>
-                </>
-              )}
+            <h2>Prompt versies (per tenant)</h2>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="button" onClick={loadPromptVersions} disabled={isLoadingPromptVersions}>
+                {isLoadingPromptVersions ? 'Laden...' : 'Ververs lijst'}
+              </button>
+              <button
+                className="button ghost"
+                onClick={() => {
+                  setPromptTenantId('global');
+                  setSelectedPromptVersion(null);
+                  setSelectedPromptData(null);
+                  setIsDiffMode(false);
+                }}
+              >
+                Reset naar global
+              </button>
             </div>
           </div>
+          <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ minWidth: '220px', flex: '1' }}>
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold' }}>
+                  Tenant ID
+                </label>
+                <input
+                  type="text"
+                  value={promptTenantId}
+                  onChange={(e) => setPromptTenantId(e.target.value || 'global')}
+                  placeholder="global of tenant-id"
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                />
+              </div>
+              <div style={{ minWidth: '220px' }}>
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold' }}>
+                  Versie
+                </label>
+                <select
+                  value={selectedPromptVersion ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value ? parseInt(e.target.value, 10) : null;
+                    setSelectedPromptVersion(v);
+                    setSelectedPromptData(null);
+                    setIsDiffMode(false);
+                    if (v !== null) loadPromptVersionData(v);
+                  }}
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  <option value="">Selecteer versie</option>
+                  {promptVersions.map((v) => (
+                    <option key={v.version} value={v.version}>
+                      v{v.version} — {new Date(v.createdAt).toLocaleString('nl-NL')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
+                <button
+                  className="button ghost"
+                  onClick={() => setIsDiffMode((prev) => !prev)}
+                  disabled={!selectedPromptData}
+                >
+                  {isDiffMode ? 'Sluit diff' : 'Toon diff t.o.v. huidig'}
+                </button>
+                <button
+                  className="button"
+                  onClick={rollbackPromptVersion}
+                  disabled={!selectedPromptVersion || !selectedPromptData || isSaving}
+                >
+                  {isSaving ? 'Rollback...' : 'Rollback naar versie'}
+                </button>
+              </div>
+            </div>
+
+            {isLoadingPromptVersion && <p style={{ fontSize: '0.9rem', color: '#666' }}>Versie laden...</p>}
+
+            {!isLoadingPromptVersion && selectedPromptData && (
+              <div style={{ display: 'grid', gridTemplateColumns: isDiffMode ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                <div>
+                  <h4 style={{ marginBottom: '0.5rem' }}>Geselecteerde versie (v{selectedPromptVersion})</h4>
+                  <pre
+                    style={{
+                      background: '#f8f9fa',
+                      padding: '1rem',
+                      borderRadius: '4px',
+                      border: '1px solid #e2e8f0',
+                      minHeight: '260px',
+                      fontSize: '0.9rem',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {JSON.stringify(selectedPromptData, null, 2)}
+                  </pre>
+                </div>
+                {isDiffMode && (
+                  <div>
+                    <h4 style={{ marginBottom: '0.5rem' }}>Huidige versie (actief)</h4>
+                    <pre
+                      style={{
+                        background: '#fffaf0',
+                        padding: '1rem',
+                        borderRadius: '4px',
+                        border: '1px solid #fbd38d',
+                        minHeight: '260px',
+                        fontSize: '0.9rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {JSON.stringify(prompts, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="prompt-content">
-          {isEditing ? (
-            <textarea
-              className="prompt-editor"
-              value={getCurrentPrompt(activeTab)}
-              onChange={(e) => updatePrompt(activeTab, e.target.value)}
-              placeholder="Voer de prompt in..."
-            />
-          ) : (
-            <pre>{getFullPrompt(activeTab)}</pre>
-          )}
-        </div>
+
+              <div className="prompt-viewer">
+                <div className="prompt-header">
+                  <h2>
+                    {activeTab === 'base' && 'Basis Instructie (gebruikt door alle types)'}
+                    {activeTab === 'landing' && 'Landingspagina Prompt'}
+                    {activeTab === 'categorie' && 'Categoriepagina Prompt'}
+                    {activeTab === 'product' && 'Productpagina Prompt'}
+                    {activeTab === 'blog' && 'Blog Prompt'}
+                    {activeTab === 'social' && 'Social Media Prompt'}
+              {activeTab === 'seo-rules' && 'SEO Regels'}
+                  </h2>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  {!isEditing && (
+                    <>
+                      <CopyButton text={getFullPrompt(activeTab)} />
+                  <button className="button" onClick={() => setIsEditing(true)}>
+                        Bewerken
+                      </button>
+                    </>
+                  )}
+                  {isEditing && (
+                    <>
+                  <button className="button" onClick={savePrompts} disabled={isSaving}>
+                        {isSaving ? 'Opslaan...' : 'Opslaan'}
+                      </button>
+                      <button
+                        className="button"
+                        style={{ backgroundColor: '#6c757d' }}
+                        onClick={() => {
+                          setIsEditing(false);
+                          loadPrompts(); // Reset naar opgeslagen versie
+                        }}
+                        disabled={isSaving}
+                      >
+                        Annuleren
+                      </button>
+                    </>
+                  )}
+            </div>
+                </div>
+              </div>
+              <div className="prompt-content">
+                {isEditing ? (
+                  <textarea
+                    className="prompt-editor"
+                    value={getCurrentPrompt(activeTab)}
+                    onChange={(e) => updatePrompt(activeTab, e.target.value)}
+                    placeholder="Voer de prompt in..."
+                  />
+                ) : (
+                  <pre>{getFullPrompt(activeTab)}</pre>
+                )}
+              </div>
       </>
     );
   };
@@ -1123,6 +1315,11 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
     }
   }, [currentOrganizationId]);
 
+  useEffect(() => {
+    loadPromptVersions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promptTenantId]);
+
   return (
     <div className="app-layout">
       <Sidebar 
@@ -1140,8 +1337,8 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
         {saveMessage && (
           <div className={`message ${saveMessage.includes('Fout') ? 'error' : 'success'}`}>
             {saveMessage}
-          </div>
-        )}
+            </div>
+            )}
 
         <div className="settings-container">
           <div className="settings-tabs">

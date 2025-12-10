@@ -1073,8 +1073,14 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId') || 'global';
+    const versionParam = searchParams.get('version');
+    const versionNumber = versionParam ? parseInt(versionParam, 10) : undefined;
     const defaults = getDefaultTemplates();
-    const record = await loadLatestPrompts(tenantId);
+    const record = versionNumber
+      ? await prisma.promptVersion.findUnique({
+          where: { tenantId_version: { tenantId, version: versionNumber } },
+        })
+      : await loadLatestPrompts(tenantId);
 
     if (record) {
       const prompts = {
