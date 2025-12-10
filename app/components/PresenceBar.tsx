@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Pusher from '@pusher/pusher-js';
+import Pusher from 'pusher-js';
 
 type PresenceUser = {
   id: string;
