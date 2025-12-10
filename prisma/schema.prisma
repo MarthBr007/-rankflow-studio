@@ -29,3 +29,22 @@ model PromptVersion {
   @@unique([tenantId, version])
 }
 
+model GenerateLog {
+  id            String   @id @default(cuid())
+  organizationId String?
+  contentType   String
+  provider       String
+  model          String
+  duration       Int      // milliseconds
+  tokensUsed     Int?
+  tokensInput    Int?
+  tokensOutput   Int?
+  success        Boolean
+  errorMessage   String?
+  metadata       Json?    // Additional metadata (topic, focusKeyword, etc.)
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([contentType, createdAt])
+}
+

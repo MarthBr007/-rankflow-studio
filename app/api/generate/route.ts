@@ -5,6 +5,45 @@ import { prisma } from '@/app/lib/prisma';
 import { decryptSecret } from '@/app/lib/crypto';
 import { validateByType } from '@/app/lib/schemas';
 
+// Logging interface
+interface GenerateLogData {
+  organizationId?: string;
+  contentType: string;
+  provider: string;
+  model: string;
+  duration: number;
+  tokensUsed?: number;
+  tokensInput?: number;
+  tokensOutput?: number;
+  success: boolean;
+  errorMessage?: string;
+  metadata?: Record<string, any>;
+}
+
+// Log generate call to database (non-blocking)
+async function logGenerateCall(data: GenerateLogData): Promise<void> {
+  try {
+    await prisma.generateLog.create({
+      data: {
+        organizationId: data.organizationId || null,
+        contentType: data.contentType,
+        provider: data.provider,
+        model: data.model,
+        duration: data.duration,
+        tokensUsed: data.tokensUsed || null,
+        tokensInput: data.tokensInput || null,
+        tokensOutput: data.tokensOutput || null,
+        success: data.success,
+        errorMessage: data.errorMessage || null,
+        metadata: data.metadata || null,
+      },
+    });
+  } catch (error) {
+    // Non-critical: log to console if DB write fails
+    console.error('Failed to write generate log to database:', error);
+  }
+}
+
 const CONFIG_FILE = join(process.cwd(), 'config.json');
 
 // Laad custom prompts als ze bestaan
@@ -1377,6 +1416,15 @@ async function callOpenAI(apiKey: string, model: string, systemMessage: string, 
       throw new Error('Ongeldige response van OpenAI API');
     }
 
+    // Store token usage for logging (if available)
+    if (data.usage) {
+      (global as any).lastTokenUsage = {
+        input: data.usage.prompt_tokens,
+        output: data.usage.completion_tokens,
+        total: data.usage.total_tokens,
+      };
+    }
+
     return data.choices[0].message.content;
   } catch (error: any) {
     clearTimeout(timeoutId);
@@ -2262,11 +2310,29 @@ function parseJsonResponse(text: string): any {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  let logData: Partial<GenerateLogData> = {
+    contentType: 'unknown',
+    provider: 'unknown',
+    model: 'unknown',
+    success: false,
+  };
+  
   try {
     let body;
     try {
       body = await request.json();
     } catch (parseError) {
+      const duration = Date.now() - startTime;
+      await logGenerateCall({
+        ...logData,
+        contentType: 'unknown',
+        provider: 'unknown',
+        model: 'unknown',
+        duration,
+        success: false,
+        errorMessage: 'Invalid JSON in request body',
+      });
       return NextResponse.json(
         { error: 'Ongeldige JSON in request body' },
         { status: 400 }
@@ -2274,6 +2340,19 @@ export async function POST(request: NextRequest) {
     }
 
     const { mode, type, content, apiKeyOverride, modelOverride, providerOverride, organizationId, ...fields } = body;
+    
+    // Initialize log data
+    logData = {
+      organizationId: typeof organizationId === 'string' ? organizationId : undefined,
+      contentType: type || 'unknown',
+      provider: providerOverride || 'unknown',
+      model: modelOverride || 'unknown',
+      success: false,
+      metadata: {
+        mode: mode || 'generate',
+        topic: fields.topic || fields.productName || fields.category || fields.subject || '',
+      },
+    };
 
     // Haal tenant credential indien aanwezig
     const tenantConfig = await loadTenantCredential(typeof organizationId === 'string' ? organizationId.trim() : undefined);
@@ -2285,6 +2364,11 @@ export async function POST(request: NextRequest) {
       provider: typeof providerOverride === 'string' && providerOverride.trim() ? providerOverride.trim() : tenantConfig?.provider,
       organizationId: typeof organizationId === 'string' ? organizationId.trim() : tenantConfig?.organizationId,
     };
+    
+    // Update log data with actual provider/model
+    logData.provider = requestOverrides.provider || 'openai';
+    logData.model = requestOverrides.model || 'gpt-4o-mini';
+    logData.organizationId = requestOverrides.organizationId;
 
     // Refine mode: verbeter bestaande content
     if (mode === 'refine') {
@@ -2887,13 +2971,37 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('Content generation complete!');
+    
+    // Log successful generation
+    const duration = Date.now() - startTime;
+    const tokenUsage = (global as any).lastTokenUsage;
+    await logGenerateCall({
+      ...logData,
+      duration,
+      success: true,
+      tokensUsed: tokenUsage?.total,
+      tokensInput: tokenUsage?.input,
+      tokensOutput: tokenUsage?.output,
+    } as GenerateLogData);
+    
+    // Clear token usage
+    (global as any).lastTokenUsage = null;
+    
     return NextResponse.json(improvedJson);
   } catch (error: any) {
     console.error('Error in generate API:', error);
     
-    // Zorg ervoor dat we altijd JSON teruggeven, geen HTML
+    // Log failed generation
+    const duration = Date.now() - startTime;
     const errorMessage = error?.message || error?.toString() || 'Er is een fout opgetreden bij het genereren van content';
+    await logGenerateCall({
+      ...logData,
+      duration,
+      success: false,
+      errorMessage: errorMessage.substring(0, 500), // Limit error message length
+    } as GenerateLogData);
     
+    // Zorg ervoor dat we altijd JSON teruggeven, geen HTML
     return NextResponse.json(
       { error: errorMessage },
       { 
