@@ -842,66 +842,68 @@ De applicatie:
                 </div>
               </div>
             ) : (
-              <div className="prompt-viewer">
-                <div className="prompt-header">
-                  <h2>
-                    {activeTab === 'base' && 'Basis Instructie (gebruikt door alle types)'}
-                    {activeTab === 'landing' && 'Landingspagina Prompt'}
-                    {activeTab === 'categorie' && 'Categoriepagina Prompt'}
-                    {activeTab === 'product' && 'Productpagina Prompt'}
-                    {activeTab === 'blog' && 'Blog Prompt'}
-                    {activeTab === 'social' && 'Social Media Prompt'}
-                    {activeTab === 'seo-rules' && 'SEO Regels'}
-                  </h2>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    {!isEditing && (
-                      <>
-                        <CopyButton text={getFullPrompt(activeTab)} />
-                        <button
-                          className="button"
-                          onClick={() => setIsEditing(true)}
-                        >
-                          Bewerken
-                        </button>
-                      </>
-                    )}
-                    {isEditing && (
-                      <>
-                        <button
-                          className="button"
-                          onClick={savePrompts}
-                          disabled={isSaving}
-                        >
-                          {isSaving ? 'Opslaan...' : 'Opslaan'}
-                        </button>
-                        <button
-                          className="button"
-                          style={{ backgroundColor: '#6c757d' }}
-                          onClick={() => {
-                            setIsEditing(false);
-                            loadPrompts(); // Reset naar opgeslagen versie
-                          }}
-                          disabled={isSaving}
-                        >
-                          Annuleren
-                        </button>
-                      </>
-                    )}
+              <>
+                <div className="prompt-viewer">
+                  <div className="prompt-header">
+                    <h2>
+                      {activeTab === 'base' && 'Basis Instructie (gebruikt door alle types)'}
+                      {activeTab === 'landing' && 'Landingspagina Prompt'}
+                      {activeTab === 'categorie' && 'Categoriepagina Prompt'}
+                      {activeTab === 'product' && 'Productpagina Prompt'}
+                      {activeTab === 'blog' && 'Blog Prompt'}
+                      {activeTab === 'social' && 'Social Media Prompt'}
+                      {activeTab === 'seo-rules' && 'SEO Regels'}
+                    </h2>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {!isEditing && (
+                        <>
+                          <CopyButton text={getFullPrompt(activeTab)} />
+                          <button
+                            className="button"
+                            onClick={() => setIsEditing(true)}
+                          >
+                            Bewerken
+                          </button>
+                        </>
+                      )}
+                      {isEditing && (
+                        <>
+                          <button
+                            className="button"
+                            onClick={savePrompts}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? 'Opslaan...' : 'Opslaan'}
+                          </button>
+                          <button
+                            className="button"
+                            style={{ backgroundColor: '#6c757d' }}
+                            onClick={() => {
+                              setIsEditing(false);
+                              loadPrompts(); // Reset naar opgeslagen versie
+                            }}
+                            disabled={isSaving}
+                          >
+                            Annuleren
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-              </div>
-              <div className="prompt-content">
-                {isEditing ? (
-                  <textarea
-                    className="prompt-editor"
-                    value={getCurrentPrompt(activeTab)}
-                    onChange={(e) => updatePrompt(activeTab, e.target.value)}
-                    placeholder="Voer de prompt in..."
-                  />
-                ) : (
-                  <pre>{getFullPrompt(activeTab)}</pre>
-                )}
-              </div>
-            </div>
+                </div>
+                <div className="prompt-content">
+                  {isEditing ? (
+                    <textarea
+                      className="prompt-editor"
+                      value={getCurrentPrompt(activeTab)}
+                      onChange={(e) => updatePrompt(activeTab, e.target.value)}
+                      placeholder="Voer de prompt in..."
+                    />
+                  ) : (
+                    <pre>{getFullPrompt(activeTab)}</pre>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
