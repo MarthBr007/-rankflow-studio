@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { prisma } from '@/app/lib/prisma';
 import { decryptSecret } from '@/app/lib/crypto';
+import { validateByType } from '@/app/lib/schemas';
 
 const PROMPTS_FILE = join(process.cwd(), 'prompts.json');
 const CONFIG_FILE = join(process.cwd(), 'config.json');
@@ -2385,6 +2386,15 @@ export async function POST(request: NextRequest) {
         minWords: lengthValidation.minWords,
         maxWords: lengthValidation.maxWords
       });
+    }
+
+    // Valideer basisstructuur per type
+    const validation = validateByType(type, draftJson);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: `JSON validatie mislukt voor type ${type}: ${validation.error.message}` },
+        { status: 500 }
+      );
     }
 
     // Normaliseer JSON structuur alleen voor landingspagina's.
