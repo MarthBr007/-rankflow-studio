@@ -3427,13 +3427,13 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                   <h3>Live blog preview</h3>
                   <p>Zo leest dit artikel ongeveer op de site.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="landing-preview-header-actions">
                   <button
                     type="button"
                     className="landing-preview-fullscreen-button"
                     onClick={() => setIsPreviewModalOpen((prev) => !prev)}
                     title={isPreviewModalOpen ? 'Sluit fullscreen' : 'Open fullscreen'}
-                    style={{ fontSize: '0.9rem', fontWeight: 600 }}
+                    style={{ fontSize: '0.9rem', fontWeight: 600, order: -1 }}
                   >
                     {isPreviewModalOpen ? '✕ Sluit' : '⛶ Fullscreen'}
                   </button>
