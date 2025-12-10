@@ -2623,6 +2623,67 @@ h3 {
   display: none;
 }
 
+.sidebar-user-info-collapsed {
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.sidebar-user-info-collapsed .sidebar-user-icon {
+  margin: 0;
+}
+
+/* User Indicator in Header */
+.user-indicator {
+  position: relative;
+  cursor: pointer;
+}
+
+.user-indicator-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: 0 2px 4px rgba(0, 91, 187, 0.2);
+  transition: all 0.2s;
+}
+
+.user-indicator-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 91, 187, 0.3);
+}
+
+.user-indicator-tooltip {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  min-width: 200px;
+  white-space: nowrap;
+}
+
+.user-indicator-tooltip-name {
+  font-weight: 500;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.user-indicator-tooltip-email {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .sidebar-header h2 {
   font-size: 1.25rem;
   margin-bottom: 0.5rem;
