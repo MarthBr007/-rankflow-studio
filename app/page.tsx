@@ -9,6 +9,7 @@ import DashboardView from './components/Dashboard';
 import { useToast } from './components/ToastContainer';
 import LoadingSpinner from './components/LoadingSpinner';
 import PresenceBar from './components/PresenceBar';
+import UserIndicator from './components/UserIndicator';
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -163,13 +164,16 @@ function HomeContent() {
                   <h1>RankFlow Studio</h1>
                   <p>Genereer SEO-geoptimaliseerde content voor je verhuurbedrijf</p>
                 </div>
-                <button 
-                  onClick={() => setShowDashboard(true)}
-                  className="button" 
-                  style={{ backgroundColor: '#6c757d' }}
-                >
-                  ← Dashboard
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <UserIndicator />
+                  <button 
+                    onClick={() => setShowDashboard(true)}
+                    className="button" 
+                    style={{ backgroundColor: '#6c757d' }}
+                  >
+                    ← Dashboard
+                  </button>
+                </div>
               </div>
             </div>
 

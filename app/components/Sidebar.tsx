@@ -214,17 +214,19 @@ function SidebarContent({ activeType, onTypeChange, isCollapsed = false, onToggl
         </Link>
       </nav>
       <div className="sidebar-footer">
-        {user && !isCollapsed && (
-          <div className="sidebar-user-info">
+        {user && (
+          <div className={`sidebar-user-info ${isCollapsed ? 'sidebar-user-info-collapsed' : ''}`} title={isCollapsed ? `${user.name || user.email}` : ''}>
             <div className="sidebar-user-icon">
               <User size={16} />
             </div>
-            <div className="sidebar-user-details">
-              <div className="sidebar-user-name">{user.name || user.email}</div>
-              {user.name && (
-                <div className="sidebar-user-email">{user.email}</div>
-              )}
-            </div>
+            {!isCollapsed && (
+              <div className="sidebar-user-details">
+                <div className="sidebar-user-name">{user.name || user.email}</div>
+                {user.name && (
+                  <div className="sidebar-user-email">{user.email}</div>
+                )}
+              </div>
+            )}
           </div>
         )}
         <button 
