@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import { checkUserAccess, canAccessResource } from '@/app/lib/access-control';
 
-// GET: Check user access
+// GET: Check user access OR list all users for an organization
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -10,10 +10,33 @@ export async function GET(request: NextRequest) {
     const userEmail = searchParams.get('userEmail');
     const resourceType = searchParams.get('resourceType') as 'templates' | 'prompts' | 'keys' | 'library' | null;
     const action = searchParams.get('action') as 'view' | 'edit' | 'delete' | null;
+    const listUsers = searchParams.get('listUsers') === 'true';
 
-    if (!organizationId || !userEmail) {
+    if (!organizationId) {
       return NextResponse.json(
-        { error: 'organizationId en userEmail zijn verplicht' },
+        { error: 'organizationId is verplicht' },
+        { status: 400 }
+      );
+    }
+
+    // List all users for organization
+    if (listUsers) {
+      const users = await prisma.tenantUser.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          email: true,
+          role: true,
+          createdAt: true,
+        },
+      });
+      return NextResponse.json(users);
+    }
+
+    // Check access for specific user
+    if (!userEmail) {
+      return NextResponse.json(
+        { error: 'userEmail is verplicht voor access checks' },
         { status: 400 }
       );
     }

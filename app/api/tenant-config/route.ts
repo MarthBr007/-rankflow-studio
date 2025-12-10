@@ -11,11 +11,11 @@ function maskKey(key: string) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId') || '';
+    const tenantId = searchParams.get('tenantId') || searchParams.get('organizationId') || '';
     const provider = searchParams.get('provider') || 'openai';
 
     if (!tenantId) {
-      return NextResponse.json({ error: 'tenantId is verplicht' }, { status: 400 });
+      return NextResponse.json({ error: 'tenantId of organizationId is verplicht' }, { status: 400 });
     }
 
     const cred = await prisma.tenantCredential.findUnique({

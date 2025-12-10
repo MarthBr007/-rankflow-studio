@@ -63,6 +63,16 @@ export default function SettingsPage() {
   const [isSavingTenant, setIsSavingTenant] = useState(false);
   const [isLoadingTenant, setIsLoadingTenant] = useState(false);
   
+  // Tenant Management state
+  const [currentOrganizationId, setCurrentOrganizationId] = useState('');
+  const [tenantUsers, setTenantUsers] = useState<Array<{ email: string; role: string; createdAt: string }>>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'viewer' | 'editor' | 'admin'>('viewer');
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [tenantKeys, setTenantKeys] = useState<Array<{ provider: string; model: string; hasKey: boolean; updatedAt?: string }>>([]);
+  const [isLoadingKeys, setIsLoadingKeys] = useState(false);
+  
   // Default prompts (fallback als er geen custom prompts zijn)
   const defaultBaseInstruction = `Jij schrijft SEO- en contentteksten voor Broers Verhuur, een verhuurbedrijf voor evenementen en horeca.
 
@@ -577,6 +587,215 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
       );
     }
 
+    if (activeTab === 'tenant-management') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Organization Selector */}
+          <div className="prompt-viewer">
+            <div className="prompt-header">
+              <h2>Tenant Management</h2>
+            </div>
+            <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  Organisatie / Tenant ID
+                </label>
+                <input
+                  type="text"
+                  value={currentOrganizationId}
+                  onChange={(e) => setCurrentOrganizationId(e.target.value)}
+                  placeholder="bijv. klant-123"
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+                <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
+                  Selecteer een tenant om users en keys te beheren
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Users Management */}
+          {currentOrganizationId && (
+            <div className="prompt-viewer">
+              <div className="prompt-header">
+                <h2>Users & Rollen</h2>
+              </div>
+              <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {/* Add User Form */}
+                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '4px' }}>
+                  <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Nieuwe User Toevoegen</h3>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div style={{ flex: '1', minWidth: '200px' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={newUserEmail}
+                        onChange={(e) => setNewUserEmail(e.target.value)}
+                        placeholder="user@example.com"
+                        style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                      />
+                    </div>
+                    <div style={{ flex: '1', minWidth: '150px' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                        Rol
+                      </label>
+                      <select
+                        value={newUserRole}
+                        onChange={(e) => setNewUserRole(e.target.value as 'viewer' | 'editor' | 'admin')}
+                        style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                      >
+                        <option value="viewer">Viewer</option>
+                        <option value="editor">Editor</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                    <button
+                      className="button"
+                      onClick={addTenantUser}
+                      disabled={isAddingUser || !newUserEmail}
+                    >
+                      {isAddingUser ? 'Toevoegen...' : 'Toevoegen'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Users List */}
+                <div>
+                  <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Bestaande Users</h3>
+                  {isLoadingUsers ? (
+                    <p>Laden...</p>
+                  ) : tenantUsers.length === 0 ? (
+                    <p style={{ color: '#666', fontStyle: 'italic' }}>Geen users gevonden. Voeg een user toe om te beginnen.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {tenantUsers.map((user, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.75rem',
+                            background: '#fff',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          <div style={{ flex: '1' }}>
+                            <div style={{ fontWeight: 'bold' }}>{user.email}</div>
+                            <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                              Rol: <strong>{user.role}</strong> • Toegevoegd: {new Date(user.createdAt).toLocaleDateString('nl-NL')}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <select
+                              value={user.role}
+                              onChange={(e) => updateUserRole(user.email, e.target.value as 'viewer' | 'editor' | 'admin')}
+                              style={{ padding: '0.35rem', fontSize: '0.9rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                            >
+                              <option value="viewer">Viewer</option>
+                              <option value="editor">Editor</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                            <button
+                              className="button"
+                              style={{ backgroundColor: '#dc3545', padding: '0.35rem 0.75rem', fontSize: '0.9rem' }}
+                              onClick={() => deleteTenantUser(user.email)}
+                            >
+                              Verwijder
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Permissions Info */}
+                <div style={{ padding: '1rem', background: '#e7f3ff', borderRadius: '4px', fontSize: '0.9rem' }}>
+                  <h4 style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Rol Permissies:</h4>
+                  <ul style={{ marginLeft: '1.5rem', lineHeight: '1.8' }}>
+                    <li><strong>Viewer:</strong> Kan content bekijken, geen wijzigingen</li>
+                    <li><strong>Editor:</strong> Kan content genereren, bewerken en opslaan</li>
+                    <li><strong>Admin:</strong> Volledige toegang, inclusief API keys en prompts beheren</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* API Keys Management */}
+          {currentOrganizationId && (
+            <div className="prompt-viewer">
+              <div className="prompt-header">
+                <h2>API Keys per Provider</h2>
+              </div>
+              <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {isLoadingKeys ? (
+                  <p>Laden...</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {tenantKeys.map((key, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '1rem',
+                          background: key.hasKey ? '#d4edda' : '#fff',
+                          border: `1px solid ${key.hasKey ? '#c3e6cb' : '#ddd'}`,
+                          borderRadius: '4px',
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{key.provider}</div>
+                          <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                            Model: {key.model} {key.updatedAt && `• Bijgewerkt: ${new Date(key.updatedAt).toLocaleDateString('nl-NL')}`}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <span style={{ 
+                            padding: '0.25rem 0.75rem', 
+                            borderRadius: '4px', 
+                            fontSize: '0.875rem',
+                            background: key.hasKey ? '#28a745' : '#6c757d',
+                            color: '#fff'
+                          }}>
+                            {key.hasKey ? '✓ Key ingesteld' : 'Geen key'}
+                          </span>
+                          <button
+                            className="button"
+                            style={{ fontSize: '0.9rem', padding: '0.35rem 0.75rem' }}
+                            onClick={() => {
+                              setTenantConfig({
+                                organizationId: currentOrganizationId,
+                                apiKey: '',
+                                model: key.model,
+                                provider: key.provider,
+                              });
+                              setActiveTab('ai-config');
+                            }}
+                          >
+                            {key.hasKey ? 'Wijzig' : 'Toevoegen'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
+                  Tip: Ga naar "AI Configuratie" tab om keys toe te voegen of te wijzigen voor deze tenant.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <>
         <div className="prompt-viewer">
@@ -772,6 +991,138 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
     }
   };
 
+  // Tenant Management functions
+  const loadTenantUsers = async () => {
+    if (!currentOrganizationId) return;
+    setIsLoadingUsers(true);
+    try {
+      const response = await fetch(`/api/access-control?organizationId=${currentOrganizationId}&listUsers=true`);
+      if (response.ok) {
+        const users = await response.json();
+        setTenantUsers(users);
+      } else {
+        const data = await response.json();
+        console.error('Error loading users:', data.error);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const loadTenantKeys = async () => {
+    if (!currentOrganizationId) return;
+    setIsLoadingKeys(true);
+    try {
+      const providers = ['openai', 'anthropic', 'google'];
+      const keys = await Promise.all(
+        providers.map(async (provider) => {
+          try {
+            const res = await fetch(`/api/tenant-config?tenantId=${currentOrganizationId}&provider=${provider}`);
+            if (res.ok) {
+              const data = await res.json();
+              return {
+                provider,
+                model: data.model || 'N/A',
+                hasKey: data.exists || false,
+                updatedAt: data.updatedAt,
+              };
+            }
+            return { provider, model: 'N/A', hasKey: false };
+          } catch {
+            return { provider, model: 'N/A', hasKey: false };
+          }
+        })
+      );
+      setTenantKeys(keys);
+    } catch (error) {
+      console.error('Error loading keys:', error);
+    } finally {
+      setIsLoadingKeys(false);
+    }
+  };
+
+  const addTenantUser = async () => {
+    if (!currentOrganizationId || !newUserEmail) {
+      showToast('Vul organisatie ID en email in', 'error');
+      return;
+    }
+    setIsAddingUser(true);
+    try {
+      const response = await fetch('/api/access-control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: currentOrganizationId,
+          email: newUserEmail,
+          role: newUserRole,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Fout bij toevoegen user');
+      }
+      showToast('User toegevoegd', 'success');
+      setNewUserEmail('');
+      setNewUserRole('viewer');
+      loadTenantUsers();
+    } catch (error: any) {
+      showToast(error.message || 'Fout bij toevoegen user', 'error');
+    } finally {
+      setIsAddingUser(false);
+    }
+  };
+
+  const updateUserRole = async (email: string, newRole: 'viewer' | 'editor' | 'admin') => {
+    if (!currentOrganizationId) return;
+    try {
+      const response = await fetch('/api/access-control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: currentOrganizationId,
+          email,
+          role: newRole,
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Fout bij updaten role');
+      }
+      showToast('Rol bijgewerkt', 'success');
+      loadTenantUsers();
+    } catch (error: any) {
+      showToast(error.message || 'Fout bij updaten role', 'error');
+    }
+  };
+
+  const deleteTenantUser = async (email: string) => {
+    if (!currentOrganizationId) return;
+    if (!confirm(`Weet je zeker dat je ${email} wilt verwijderen?`)) return;
+    try {
+      const response = await fetch(`/api/access-control?organizationId=${currentOrganizationId}&email=${email}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Fout bij verwijderen user');
+      }
+      showToast('User verwijderd', 'success');
+      loadTenantUsers();
+    } catch (error: any) {
+      showToast(error.message || 'Fout bij verwijderen user', 'error');
+    }
+  };
+
+  // Load tenant data when organization ID changes
+  useEffect(() => {
+    if (currentOrganizationId) {
+      loadTenantUsers();
+      loadTenantKeys();
+    }
+  }, [currentOrganizationId]);
+
   return (
     <div className="app-layout">
       <Sidebar 
@@ -841,6 +1192,12 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
               onClick={() => setActiveTab('seo-rules')}
             >
               SEO Regels
+            </button>
+            <button
+              className={`settings-tab ${activeTab === 'tenant-management' ? 'active' : ''}`}
+              onClick={() => setActiveTab('tenant-management')}
+            >
+              Tenant Management
             </button>
           </div>
 
