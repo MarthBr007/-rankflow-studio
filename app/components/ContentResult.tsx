@@ -932,7 +932,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
         </h3>
         <div className="result-content">{displayContent}</div>
       </div>
-    ));
+    );
   };
 
   const renderBullets = (title: string, bullets: string[] | string | undefined | null) => {
