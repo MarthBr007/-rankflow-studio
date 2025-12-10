@@ -14,7 +14,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Library,
-  LayoutDashboard
+  LayoutDashboard,
+  LayoutTemplate
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -136,6 +137,22 @@ function SidebarContent({ activeType, onTypeChange, isCollapsed = false, onToggl
           </div>
           {!isCollapsed && (
             <div className="sidebar-item-label">Content Library</div>
+          )}
+        </Link>
+        <Link 
+          href="/templates" 
+          className={`sidebar-item ${pathname === '/templates' ? 'active' : ''}`}
+          style={{ 
+            textDecoration: 'none', 
+            display: 'block',
+            color: 'inherit'
+          }}
+        >
+          <div className="sidebar-item-icon">
+            <LayoutTemplate size={20} />
+          </div>
+          {!isCollapsed && (
+            <div className="sidebar-item-label">Templates</div>
           )}
         </Link>
         <Link 
