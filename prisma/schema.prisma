@@ -19,3 +19,13 @@ model TenantCredential {
   @@unique([tenantId, provider])
 }
 
+model PromptVersion {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("global")
+  version   Int
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, version])
+}
+

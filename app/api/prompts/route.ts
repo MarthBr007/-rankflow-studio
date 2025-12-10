@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile, writeFile } from 'fs/promises';
-import { join } from 'path';
-
-const PROMPTS_FILE = join(process.cwd(), 'prompts.json');
+import { prisma } from '@/app/lib/prisma';
 
 // Default prompts (moeten overeenkomen met route.ts)
 const DEFAULT_BASE_INSTRUCTION = `Jij schrijft SEO- en contentteksten voor Broers Verhuur, een verhuurbedrijf voor evenementen en horeca.
@@ -25,28 +22,6 @@ Gebruik altijd deze schrijfstijl en tone of voice:
 - Gebruik waar passend advies in stappen: hoe werkt het, hoe pak je het aan, hoe combineer je materialen, styling ideeën
 - Schrijf altijd vanuit beleving en ervaringen: diner, feest, aankleding, sfeer, setting, momenten, tafels, gasten
 - gebruik geen streepjes in de uiteindelijke tekst`;
-
-// Laad prompts uit bestand of gebruik defaults
-async function loadPrompts() {
-  try {
-    const data = await readFile(PROMPTS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    // Als bestand niet bestaat, return null (gebruik defaults)
-    return null;
-  }
-}
-
-// Sla prompts op in bestand
-async function savePrompts(prompts: any) {
-  try {
-    await writeFile(PROMPTS_FILE, JSON.stringify(prompts, null, 2), 'utf-8');
-    return true;
-  } catch (error) {
-    console.error('Error saving prompts:', error);
-    return false;
-  }
-}
 
 // Helper om default templates te krijgen (zonder interpolatie)
 function getDefaultTemplates() {
@@ -1010,26 +985,50 @@ ${QUALITY_INSTRUCTIONS}`,
   };
 }
 
-export async function GET() {
+async function loadLatestPrompts(tenantId = 'global') {
+  const record = await prisma.promptVersion.findFirst({
+    where: { tenantId },
+    orderBy: { version: 'desc' },
+  });
+  return record ? { prompts: record.data as any, version: record.version } : null;
+}
+
+async function savePromptVersion(tenantId: string, prompts: any) {
+  const latest = await prisma.promptVersion.findFirst({
+    where: { tenantId },
+    orderBy: { version: 'desc' },
+  });
+  const nextVersion = (latest?.version || 0) + 1;
+  const saved = await prisma.promptVersion.create({
+    data: {
+      tenantId,
+      version: nextVersion,
+      data: prompts,
+    },
+  });
+  return saved.version;
+}
+
+export async function GET(request: NextRequest) {
   try {
-    const savedPrompts = await loadPrompts();
+    const { searchParams } = new URL(request.url);
+    const tenantId = searchParams.get('tenantId') || 'global';
     const defaults = getDefaultTemplates();
-    
-    // Merge: gebruik saved prompts waar beschikbaar, anders defaults
-    const prompts = {
-      base: savedPrompts?.base || defaults.base,
-      landing: savedPrompts?.landing || defaults.landing,
-      categorie: savedPrompts?.categorie || defaults.categorie,
-      product: savedPrompts?.product || defaults.product,
-      blog: savedPrompts?.blog || defaults.blog,
-      social: savedPrompts?.social || defaults.social,
-    };
-    
-    return NextResponse.json({ 
-      prompts,
-      defaults,
-      exists: savedPrompts !== null 
-    });
+    const record = await loadLatestPrompts(tenantId);
+
+    if (record) {
+      const prompts = {
+        base: record.prompts?.base || defaults.base,
+        landing: record.prompts?.landing || defaults.landing,
+        categorie: record.prompts?.categorie || defaults.categorie,
+        product: record.prompts?.product || defaults.product,
+        blog: record.prompts?.blog || defaults.blog,
+        social: record.prompts?.social || defaults.social,
+      };
+      return NextResponse.json({ prompts, defaults, version: record.version, exists: true });
+    }
+
+    return NextResponse.json({ defaults, version: 0, exists: false });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Fout bij het ophalen van prompts' },
@@ -1041,25 +1040,15 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { prompts } = body;
+    const { prompts, tenantId = 'global' } = body;
 
-    if (!prompts) {
-      return NextResponse.json(
-        { error: 'Prompts zijn verplicht' },
-        { status: 400 }
-      );
+    if (!prompts || typeof prompts !== 'object') {
+      return NextResponse.json({ error: 'Prompts zijn verplicht' }, { status: 400 });
     }
 
-    const success = await savePrompts(prompts);
-    
-    if (success) {
-      return NextResponse.json({ success: true, message: 'Prompts opgeslagen' });
-    } else {
-      return NextResponse.json(
-        { error: 'Fout bij het opslaan van prompts' },
-        { status: 500 }
-      );
-    }
+    const version = await savePromptVersion(tenantId, prompts);
+
+    return NextResponse.json({ success: true, message: 'Prompts opgeslagen', version });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || 'Fout bij het opslaan van prompts' },

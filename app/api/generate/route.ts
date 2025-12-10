@@ -5,15 +5,24 @@ import { prisma } from '@/app/lib/prisma';
 import { decryptSecret } from '@/app/lib/crypto';
 import { validateByType } from '@/app/lib/schemas';
 
-const PROMPTS_FILE = join(process.cwd(), 'prompts.json');
 const CONFIG_FILE = join(process.cwd(), 'config.json');
 
 // Laad custom prompts als ze bestaan
 async function loadCustomPrompts() {
   try {
-    const data = await readFile(PROMPTS_FILE, 'utf-8');
+    const record = await prisma.promptVersion.findFirst({
+      where: { tenantId: 'global' },
+      orderBy: { version: 'desc' },
+    });
+    if (record) return record.data as any;
+  } catch (e) {
+    console.error('Fout bij laden prompts uit DB:', e);
+  }
+  // fallback op lokaal bestand (dev)
+  try {
+    const data = await readFile(join(process.cwd(), 'prompts.json'), 'utf-8');
     return JSON.parse(data);
-  } catch (error) {
+  } catch {
     return null;
   }
 }
