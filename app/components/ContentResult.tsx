@@ -1270,13 +1270,15 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                   <h3>Live product preview</h3>
                   <p>Bekijk hoe deze productpagina er ongeveer uitziet op de site.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <div className="landing-preview-header-actions">
                   <button
                     type="button"
                     className="landing-preview-fullscreen-button"
                     onClick={() => setIsPreviewModalOpen((prev) => !prev)}
+                    title={isPreviewModalOpen ? 'Sluit fullscreen' : 'Open fullscreen'}
+                    style={{ fontSize: '0.9rem', fontWeight: 600, order: -1 }}
                   >
-                    {isPreviewModalOpen ? 'Sluit fullscreen' : 'Open fullscreen'}
+                    {isPreviewModalOpen ? '✕ Sluit' : '⛶ Fullscreen'}
                   </button>
                   <div className="landing-preview-device-toggle">
                 <button
