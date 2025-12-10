@@ -8,6 +8,7 @@ import Sidebar from './components/Sidebar';
 import DashboardView from './components/Dashboard';
 import { useToast } from './components/ToastContainer';
 import LoadingSpinner from './components/LoadingSpinner';
+import PresenceBar from './components/PresenceBar';
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -171,6 +172,8 @@ function HomeContent() {
                 </button>
               </div>
             </div>
+
+            <PresenceBar />
 
             {error && (
               <div className="error">
