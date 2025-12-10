@@ -577,6 +577,19 @@ async function exportContent(content: any, format: string, contentType: string) 
   }
 }
 
+// Download helper for JSON
+function downloadJson(data: any, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function ContentResult({ type, result, onRefine, isRefining, onResultChange }: ContentResultProps) {
   const [isExporting, setIsExporting] = React.useState(false);
   const [editedResult, setEditedResult] = React.useState<ContentResult>(result);
@@ -2013,6 +2026,16 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           <div className="result-section">
             <h3>Schema.org Markup (JSON-LD)</h3>
             <div className="result-content">
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                <CopyButton text={JSON.stringify(landing.schema, null, 2)} />
+                <button
+                  className="button ghost"
+                  type="button"
+                  onClick={() => downloadJson(landing.schema, `${landing.seo?.urlSlug || 'schema'}.json`)}
+                >
+                  Download JSON
+                </button>
+              </div>
               <pre style={{ 
                 background: '#f5f5f5', 
                 padding: '1rem', 
@@ -2020,10 +2043,9 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                 overflow: 'auto',
                 fontSize: '0.875rem',
                 maxHeight: '400px'
-              }}>
+              }} data-testid="schema-json">
                 {JSON.stringify(landing.schema, null, 2)}
               </pre>
-              <CopyButton text={JSON.stringify(landing.schema, null, 2)} />
             </div>
           </div>
         )}
