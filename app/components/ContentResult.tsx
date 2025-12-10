@@ -1144,7 +1144,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           return '';
       }
     };
-    
+
     return renderWrapper((
       <div className="landing-builder">
         {onRefine && (
