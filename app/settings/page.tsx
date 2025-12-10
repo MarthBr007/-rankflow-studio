@@ -74,7 +74,7 @@ export default function SettingsPage() {
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
 
   // User management state (admin only)
-  const [currentUser, setCurrentUser] = useState<{ email: string; name?: string; role?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id?: string; email: string; name?: string; role?: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [users, setUsers] = useState<Array<{ id: string; email: string; name?: string; role: string; createdAt: string; lastLoginAt?: string }>>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
