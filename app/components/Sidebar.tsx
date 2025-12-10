@@ -139,6 +139,22 @@ function SidebarContent({ activeType, onTypeChange, isCollapsed = false, onToggl
           )}
         </Link>
         <Link 
+          href="/analytics" 
+          className={`sidebar-item ${pathname === '/analytics' ? 'active' : ''}`}
+          style={{ 
+            textDecoration: 'none', 
+            display: 'block',
+            color: 'inherit'
+          }}
+        >
+          <div className="sidebar-item-icon">
+            📊
+          </div>
+          {!isCollapsed && (
+            <div className="sidebar-item-label">Analytics</div>
+          )}
+        </Link>
+        <Link 
           href="/settings" 
           className={`sidebar-item ${isSettings ? 'active' : ''}`}
           style={{ 
