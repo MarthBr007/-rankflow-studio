@@ -36,17 +36,22 @@ export async function POST(request: NextRequest) {
     // Hash password
     const passwordHash = await hashPassword(password);
 
-    // Create user
+    // Create user (first user is admin, others are regular users)
+    const userCount = await prisma.user.count();
+    const isFirstUser = userCount === 0;
+    
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
         passwordHash,
         name: name || undefined,
+        role: isFirstUser ? 'admin' : 'user',
       },
       select: {
         id: true,
         email: true,
         name: true,
+        role: true,
         organizationId: true,
       },
     });

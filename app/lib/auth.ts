@@ -9,6 +9,7 @@ export interface SessionUser {
   id: string;
   email: string;
   name?: string;
+  role?: string;
   organizationId?: string;
 }
 
@@ -51,6 +52,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
         id: true,
         email: true,
         name: true,
+        role: true,
         organizationId: true,
       },
     });
@@ -63,6 +65,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       id: user.id,
       email: user.email,
       name: user.name || undefined,
+      role: user.role || undefined,
       organizationId: user.organizationId || undefined,
     };
   } catch (error) {
@@ -78,6 +81,7 @@ export async function setSessionCookie(user: SessionUser) {
     userId: user.id,
     email: user.email,
     name: user.name,
+    role: user.role,
     organizationId: user.organizationId,
   };
 

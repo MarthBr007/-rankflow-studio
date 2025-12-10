@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
+import { getCurrentUser } from '@/app/lib/auth';
 
 // Default prompts (moeten overeenkomen met route.ts)
 const DEFAULT_BASE_INSTRUCTION = `Jij schrijft SEO- en contentteksten voor Broers Verhuur, een verhuurbedrijf voor evenementen en horeca.
@@ -1105,6 +1106,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if user is admin
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 });
+    }
+    
+    if (user.role !== 'admin') {
+      return NextResponse.json({ error: 'Alleen admins kunnen prompts bewerken' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { prompts, tenantId = 'global' } = body;
 

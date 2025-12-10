@@ -83,12 +83,14 @@ model User {
   email         String   @unique
   passwordHash  String
   name          String?
+  role          String   @default("user") // "user" or "admin"
   organizationId String? // Optioneel: voor toekomstige multi-tenant support
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   lastLoginAt   DateTime?
 
   @@index([email])
+  @@index([role])
 }
 
 model TenantUser {

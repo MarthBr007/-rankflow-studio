@@ -50,6 +50,10 @@ function SidebarContent({ activeType, onTypeChange, isCollapsed = false, onToggl
   }, []);
 
   const handleLogout = async () => {
+    if (!confirm('Weet je zeker dat je wilt uitloggen?')) {
+      return;
+    }
+    
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');

@@ -73,6 +73,135 @@ export default function SettingsPage() {
   const [tenantKeys, setTenantKeys] = useState<Array<{ provider: string; model: string; hasKey: boolean; updatedAt?: string }>>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
 
+  // User management state (admin only)
+  const [currentUser, setCurrentUser] = useState<{ email: string; name?: string; role?: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [users, setUsers] = useState<Array<{ id: string; email: string; name?: string; role: string; createdAt: string; lastLoginAt?: string }>>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'user' | 'admin'>('user');
+  const [isAddingUser, setIsAddingUser] = useState(false);
+
+  // Load current user on mount
+  useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/auth/session');
+      const data = await response.json();
+      if (data.user) {
+        setCurrentUser(data.user);
+        setIsAdmin(data.user.role === 'admin');
+        if (data.user.role === 'admin') {
+          loadUsers();
+        }
+      }
+    } catch (error) {
+      console.error('Error loading current user:', error);
+    }
+  };
+
+  const loadUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const response = await fetch('/api/admin/users');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users || []);
+      } else {
+        const errorData = await response.json();
+        console.error('Error loading users:', errorData.error);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const addUser = async () => {
+    if (!newUserEmail || !newUserPassword) {
+      showToast('Email en wachtwoord zijn verplicht', 'error');
+      return;
+    }
+
+    setIsAddingUser(true);
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newUserEmail,
+          password: newUserPassword,
+          name: newUserName || undefined,
+          role: newUserRole,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Fout bij toevoegen user');
+      }
+
+      showToast('User toegevoegd', 'success');
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserName('');
+      setNewUserRole('user');
+      loadUsers();
+    } catch (error: any) {
+      showToast(error.message || 'Fout bij toevoegen user', 'error');
+    } finally {
+      setIsAddingUser(false);
+    }
+  };
+
+  const updateUserRole = async (id: string, newRole: 'user' | 'admin') => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, role: newRole }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Fout bij updaten role');
+      }
+
+      showToast('Role bijgewerkt', 'success');
+      loadUsers();
+    } catch (error: any) {
+      showToast(error.message || 'Fout bij updaten role', 'error');
+    }
+  };
+
+  const deleteUser = async (id: string) => {
+    if (!confirm('Weet je zeker dat je deze user wilt verwijderen?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Fout bij verwijderen user');
+      }
+
+      showToast('User verwijderd', 'success');
+      loadUsers();
+    } catch (error: any) {
+      showToast(error.message || 'Fout bij verwijderen user', 'error');
+    }
+  };
+
   // Prompt versiebeheer state
   const [promptTenantId, setPromptTenantId] = useState('global');
   const [promptVersions, setPromptVersions] = useState<Array<{ version: number; createdAt: string }>>([]);
@@ -286,6 +415,11 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
   };
 
   const savePrompts = async () => {
+    if (!isAdmin) {
+      showToast('Alleen admins kunnen prompts bewerken', 'error');
+      return;
+    }
+
     setIsSaving(true);
     setSaveMessage(null);
     
@@ -299,7 +433,8 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
       });
 
       if (!response.ok) {
-        throw new Error('Fout bij het opslaan');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Fout bij het opslaan');
       }
 
       showToast('Prompts succesvol opgeslagen!', 'success');
@@ -1005,9 +1140,15 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                   {!isEditing && (
                     <>
                       <CopyButton text={getFullPrompt(activeTab)} />
-                  <button className="button" onClick={() => setIsEditing(true)}>
-                        Bewerken
-                      </button>
+                      {isAdmin ? (
+                        <button className="button" onClick={() => setIsEditing(true)}>
+                          Bewerken
+                        </button>
+                      ) : (
+                        <span style={{ color: '#666', fontSize: '0.875rem' }}>
+                          Alleen admins kunnen prompts bewerken
+                        </span>
+                      )}
                     </>
                   )}
                   {isEditing && (
