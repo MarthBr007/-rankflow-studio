@@ -412,6 +412,318 @@ De applicatie:
     setPrompts(prev => ({ ...prev, [tab]: value }));
   };
 
+  const renderContent = () => {
+    if (activeTab === 'ai-config') {
+      return (
+        <>
+          <div className="prompt-viewer">
+            <div className="prompt-header">
+              <h2>AI Configuratie</h2>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {!isEditingConfig && (
+                  <button className="button" onClick={() => setIsEditingConfig(true)}>
+                    Bewerken
+                  </button>
+                )}
+                {isEditingConfig && (
+                  <>
+                    <button className="button" onClick={saveConfig} disabled={isSavingConfig}>
+                      {isSavingConfig ? 'Opslaan...' : 'Opslaan'}
+                    </button>
+                    <button
+                      className="button"
+                      style={{ backgroundColor: '#6c757d' }}
+                      onClick={() => {
+                        setIsEditingConfig(false);
+                        loadConfig(); // Reset naar opgeslagen versie
+                      }}
+                      disabled={isSavingConfig}
+                    >
+                      Annuleren
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="prompt-content">
+              {isEditingConfig ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                      AI Provider
+                    </label>
+                    <select
+                      value={aiConfig.provider}
+                      onChange={(e) => setAiConfig(prev => ({ ...prev, provider: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                    >
+                      <option value="openai">OpenAI (ChatGPT)</option>
+                      <option value="anthropic">Anthropic (Claude)</option>
+                      <option value="google">Google (Gemini)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                      Model
+                    </label>
+                    <select
+                      value={aiConfig.model}
+                      onChange={(e) => setAiConfig(prev => ({ ...prev, model: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                    >
+                      {aiConfig.provider === 'openai' && (
+                        <>
+                          <option value="gpt-4o">GPT-4o</option>
+                          <option value="gpt-4o-mini">GPT-4o Mini</option>
+                          <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                          <option value="gpt-4">GPT-4</option>
+                          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        </>
+                      )}
+                      {aiConfig.provider === 'anthropic' && (
+                        <>
+                          <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                          <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                          <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+                          <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                        </>
+                      )}
+                      {aiConfig.provider === 'google' && (
+                        <>
+                          <option value="gemini-pro">Gemini Pro</option>
+                          <option value="gemini-pro-vision">Gemini Pro Vision</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                      API Key
+                    </label>
+                    <input
+                      type="password"
+                      value={aiConfig.apiKey}
+                      onChange={(e) => setAiConfig(prev => ({ ...prev, apiKey: e.target.value }))}
+                      placeholder="Voer je API key in..."
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                    />
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#666' }}>
+                      Je API key wordt veilig opgeslagen lokaal. Laat dit veld leeg om de huidige key te behouden.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div>
+                    <strong>Provider:</strong> {aiConfig.provider === 'openai' ? 'OpenAI (ChatGPT)' : aiConfig.provider === 'anthropic' ? 'Anthropic (Claude)' : 'Google (Gemini)'}
+                  </div>
+                  <div>
+                    <strong>Model:</strong> {aiConfig.model}
+                  </div>
+                  <div>
+                    <strong>API Key:</strong> {hasApiKey ? '✓ Geconfigureerd' : 'Niet geconfigureerd'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tenant / white-label keys (client-side) */}
+          <div className="prompt-viewer" style={{ marginTop: '1rem' }}>
+            <div className="prompt-header">
+              <h2>Tenant / White-label API Key</h2>
+              {hasTenantKey && <span style={{ color: '#2e7d32', fontSize: '0.9rem' }}>✓ opgeslagen (client-side)</span>}
+            </div>
+            <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  Organisatie / Tenant ID
+                </label>
+                <input
+                  type="text"
+                  value={tenantConfig.organizationId}
+                  onChange={(e) => setTenantConfig(prev => ({ ...prev, organizationId: e.target.value }))}
+                  placeholder="bijv. klant-123"
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+                <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
+                  Wordt meegestuurd met generate-calls; kies een unieke ID per klant.
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  API Key (client-side opslag)
+                </label>
+                <input
+                  type="password"
+                  value={tenantConfig.apiKey}
+                  onChange={(e) => setTenantConfig(prev => ({ ...prev, apiKey: e.target.value }))}
+                  placeholder="sk-..."
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+                {hasTenantKey && (
+                  <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
+                    Opslag in localStorage (mask): ****{tenantConfig.apiKey.slice(-4)}
+                  </p>
+                )}
+                <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#c0392b' }}>
+                  Voor productie multi-tenant: gebruik server-side opslag (DB/KMS). Deze variant is client-side.
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  Provider
+                </label>
+                <select
+                  value={tenantConfig.provider}
+                  onChange={(e) => setTenantConfig(prev => ({ ...prev, provider: e.target.value }))}
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                >
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="google">Google</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  Model
+                </label>
+                <input
+                  type="text"
+                  value={tenantConfig.model}
+                  onChange={(e) => setTenantConfig(prev => ({ ...prev, model: e.target.value }))}
+                  placeholder="bijv. gpt-4o-mini"
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className="button" onClick={saveTenantConfig} disabled={isSavingTenant} style={{ minWidth: '160px' }}>
+                  {isSavingTenant ? 'Opslaan...' : 'Opslaan (tenant)'}
+                </button>
+                <button className="button ghost" type="button" onClick={clearTenantConfig} style={{ minWidth: '140px' }}>
+                  Verwijder
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (activeTab === 'seo-rules') {
+      return (
+        <div className="prompt-viewer">
+          <div className="prompt-header">
+            <h2>RankFlow SEO-regels</h2>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {!isEditingSeoRules && (
+                <>
+                  <CopyButton text={seoRulesText} />
+                  <button className="button" onClick={() => setIsEditingSeoRules(true)}>
+                    Bewerken
+                  </button>
+                </>
+              )}
+              {isEditingSeoRules && (
+                <>
+                  <button className="button" onClick={saveSeoRules} disabled={isSaving}>
+                    {isSaving ? 'Opslaan...' : 'Opslaan'}
+                  </button>
+                  <button
+                    className="button"
+                    style={{ backgroundColor: '#6c757d' }}
+                    onClick={() => {
+                      setIsEditingSeoRules(false);
+                      loadSeoRules(); // Reset naar opgeslagen versie
+                    }}
+                    disabled={isSaving}
+                  >
+                    Annuleren
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="prompt-content prompt-content-seo-rules">
+            {isEditingSeoRules ? (
+              <textarea
+                className="prompt-editor"
+                value={seoRulesText}
+                onChange={(e) => setSeoRulesText(e.target.value)}
+                placeholder="Voer de SEO-regels in..."
+                style={{ minHeight: '600px' }}
+              />
+            ) : (
+              <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', margin: 0, fontFamily: 'inherit', fontSize: '0.9375rem', lineHeight: '1.7', color: 'var(--color-text)' }}>{seoRulesText}</pre>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <div className="prompt-viewer">
+          <div className="prompt-header">
+            <h2>
+              {activeTab === 'base' && 'Basis Instructie (gebruikt door alle types)'}
+              {activeTab === 'landing' && 'Landingspagina Prompt'}
+              {activeTab === 'categorie' && 'Categoriepagina Prompt'}
+              {activeTab === 'product' && 'Productpagina Prompt'}
+              {activeTab === 'blog' && 'Blog Prompt'}
+              {activeTab === 'social' && 'Social Media Prompt'}
+              {activeTab === 'seo-rules' && 'SEO Regels'}
+            </h2>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {!isEditing && (
+                <>
+                  <CopyButton text={getFullPrompt(activeTab)} />
+                  <button className="button" onClick={() => setIsEditing(true)}>
+                    Bewerken
+                  </button>
+                </>
+              )}
+              {isEditing && (
+                <>
+                  <button className="button" onClick={savePrompts} disabled={isSaving}>
+                    {isSaving ? 'Opslaan...' : 'Opslaan'}
+                  </button>
+                  <button
+                    className="button"
+                    style={{ backgroundColor: '#6c757d' }}
+                    onClick={() => {
+                      setIsEditing(false);
+                      loadPrompts(); // Reset naar opgeslagen versie
+                    }}
+                    disabled={isSaving}
+                  >
+                    Annuleren
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="prompt-content">
+          {isEditing ? (
+            <textarea
+              className="prompt-editor"
+              value={getCurrentPrompt(activeTab)}
+              onChange={(e) => updatePrompt(activeTab, e.target.value)}
+              placeholder="Voer de prompt in..."
+            />
+          ) : (
+            <pre>{getFullPrompt(activeTab)}</pre>
+          )}
+        </div>
+      </>
+    );
+  };
+
   // Laad AI configuratie
   const loadConfig = async () => {
     try {
@@ -582,330 +894,7 @@ De applicatie:
             </button>
           </div>
 
-          <div className="settings-content">
-            {activeTab === 'ai-config' ? (
-              <div className="prompt-viewer">
-                <div className="prompt-header">
-                  <h2>AI Configuratie</h2>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    {!isEditingConfig && (
-                      <button
-                        className="button"
-                        onClick={() => setIsEditingConfig(true)}
-                      >
-                        Bewerken
-                      </button>
-                    )}
-                    {isEditingConfig && (
-                      <>
-                        <button
-                          className="button"
-                          onClick={saveConfig}
-                          disabled={isSavingConfig}
-                        >
-                          {isSavingConfig ? 'Opslaan...' : 'Opslaan'}
-                        </button>
-                        <button
-                          className="button"
-                          style={{ backgroundColor: '#6c757d' }}
-                          onClick={() => {
-                            setIsEditingConfig(false);
-                            loadConfig(); // Reset naar opgeslagen versie
-                          }}
-                          disabled={isSavingConfig}
-                        >
-                          Annuleren
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="prompt-content">
-                  {isEditingConfig ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                          AI Provider
-                        </label>
-                        <select
-                          value={aiConfig.provider}
-                          onChange={(e) => setAiConfig(prev => ({ ...prev, provider: e.target.value }))}
-                          style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                        >
-                          <option value="openai">OpenAI (ChatGPT)</option>
-                          <option value="anthropic">Anthropic (Claude)</option>
-                          <option value="google">Google (Gemini)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                          Model
-                        </label>
-                        <select
-                          value={aiConfig.model}
-                          onChange={(e) => setAiConfig(prev => ({ ...prev, model: e.target.value }))}
-                          style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                        >
-                          {aiConfig.provider === 'openai' && (
-                            <>
-                              <option value="gpt-4o">GPT-4o</option>
-                              <option value="gpt-4o-mini">GPT-4o Mini</option>
-                              <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                              <option value="gpt-4">GPT-4</option>
-                              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                            </>
-                          )}
-                          {aiConfig.provider === 'anthropic' && (
-                            <>
-                              <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                              <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                              <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
-                              <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
-                            </>
-                          )}
-                          {aiConfig.provider === 'google' && (
-                            <>
-                              <option value="gemini-pro">Gemini Pro</option>
-                              <option value="gemini-pro-vision">Gemini Pro Vision</option>
-                            </>
-                          )}
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                          API Key
-                        </label>
-                        <input
-                          type="password"
-                          value={aiConfig.apiKey}
-                          onChange={(e) => setAiConfig(prev => ({ ...prev, apiKey: e.target.value }))}
-                          placeholder="Voer je API key in..."
-                          style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                        />
-                        <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#666' }}>
-                          Je API key wordt veilig opgeslagen lokaal. Laat dit veld leeg om de huidige key te behouden.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                      <div>
-                        <strong>Provider:</strong> {aiConfig.provider === 'openai' ? 'OpenAI (ChatGPT)' : aiConfig.provider === 'anthropic' ? 'Anthropic (Claude)' : 'Google (Gemini)'}
-                      </div>
-                      <div>
-                        <strong>Model:</strong> {aiConfig.model}
-                      </div>
-                      <div>
-                        <strong>API Key:</strong> {hasApiKey ? '✓ Geconfigureerd' : 'Niet geconfigureerd'}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Tenant / white-label keys (client-side) */}
-              <div className="prompt-viewer" style={{ marginTop: '1rem' }}>
-                <div className="prompt-header">
-                  <h2>Tenant / White-label API Key</h2>
-                  {hasTenantKey && (
-                    <span style={{ color: '#2e7d32', fontSize: '0.9rem' }}>✓ opgeslagen (client-side)</span>
-                  )}
-                </div>
-                <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                      Organisatie / Tenant ID
-                    </label>
-                    <input
-                      type="text"
-                      value={tenantConfig.organizationId}
-                      onChange={(e) => setTenantConfig(prev => ({ ...prev, organizationId: e.target.value }))}
-                      placeholder="bijv. klant-123"
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                    />
-                    <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
-                      Wordt meegestuurd met generate-calls; kies een unieke ID per klant.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                      API Key (client-side opslag)
-                    </label>
-                    <input
-                      type="password"
-                      value={tenantConfig.apiKey}
-                      onChange={(e) => setTenantConfig(prev => ({ ...prev, apiKey: e.target.value }))}
-                      placeholder="sk-..."
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                    />
-                    {hasTenantKey && (
-                      <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#666' }}>
-                        Opslag in localStorage (mask): ****{tenantConfig.apiKey.slice(-4)}
-                      </p>
-                    )}
-                    <p style={{ marginTop: '0.35rem', fontSize: '0.875rem', color: '#c0392b' }}>
-                      Voor productie multi-tenant: gebruik server-side opslag (DB/KMS). Deze variant is client-side.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                      Provider
-                    </label>
-                    <select
-                      value={tenantConfig.provider}
-                      onChange={(e) => setTenantConfig(prev => ({ ...prev, provider: e.target.value }))}
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                    >
-                      <option value="openai">OpenAI</option>
-                      <option value="anthropic">Anthropic</option>
-                      <option value="google">Google</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                      Model
-                    </label>
-                    <input
-                      type="text"
-                      value={tenantConfig.model}
-                      onChange={(e) => setTenantConfig(prev => ({ ...prev, model: e.target.value }))}
-                      placeholder="bijv. gpt-4o-mini"
-                      style={{ width: '100%', padding: '0.5rem', fontSize: '1rem', borderRadius: '4px', border: '1px solid #ddd' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button className="button" onClick={saveTenantConfig} disabled={isSavingTenant} style={{ minWidth: '160px' }}>
-                      {isSavingTenant ? 'Opslaan...' : 'Opslaan (tenant)'}
-                    </button>
-                    <button className="button ghost" type="button" onClick={clearTenantConfig} style={{ minWidth: '140px' }}>
-                      Verwijder
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : activeTab === 'seo-rules' ? (
-              <div className="prompt-viewer">
-                <div className="prompt-header">
-                  <h2>RankFlow SEO-regels</h2>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    {!isEditingSeoRules && (
-                      <>
-                        <CopyButton text={seoRulesText} />
-                        <button
-                          className="button"
-                          onClick={() => setIsEditingSeoRules(true)}
-                        >
-                          Bewerken
-                        </button>
-                      </>
-                    )}
-                    {isEditingSeoRules && (
-                      <>
-                        <button
-                          className="button"
-                          onClick={saveSeoRules}
-                          disabled={isSaving}
-                        >
-                          {isSaving ? 'Opslaan...' : 'Opslaan'}
-                        </button>
-                        <button
-                          className="button"
-                          style={{ backgroundColor: '#6c757d' }}
-                          onClick={() => {
-                            setIsEditingSeoRules(false);
-                            loadSeoRules(); // Reset naar opgeslagen versie
-                          }}
-                          disabled={isSaving}
-                        >
-                          Annuleren
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="prompt-content prompt-content-seo-rules">
-                  {isEditingSeoRules ? (
-                    <textarea
-                      className="prompt-editor"
-                      value={seoRulesText}
-                      onChange={(e) => setSeoRulesText(e.target.value)}
-                      placeholder="Voer de SEO-regels in..."
-                      style={{ minHeight: '600px' }}
-                    />
-                  ) : (
-                    <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', margin: 0, fontFamily: 'inherit', fontSize: '0.9375rem', lineHeight: '1.7', color: 'var(--color-text)' }}>{seoRulesText}</pre>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="prompt-viewer">
-                  <div className="prompt-header">
-                    <h2>
-                      {activeTab === 'base' && 'Basis Instructie (gebruikt door alle types)'}
-                      {activeTab === 'landing' && 'Landingspagina Prompt'}
-                      {activeTab === 'categorie' && 'Categoriepagina Prompt'}
-                      {activeTab === 'product' && 'Productpagina Prompt'}
-                      {activeTab === 'blog' && 'Blog Prompt'}
-                      {activeTab === 'social' && 'Social Media Prompt'}
-                      {activeTab === 'seo-rules' && 'SEO Regels'}
-                    </h2>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      {!isEditing && (
-                        <>
-                          <CopyButton text={getFullPrompt(activeTab)} />
-                          <button
-                            className="button"
-                            onClick={() => setIsEditing(true)}
-                          >
-                            Bewerken
-                          </button>
-                        </>
-                      )}
-                      {isEditing && (
-                        <>
-                          <button
-                            className="button"
-                            onClick={savePrompts}
-                            disabled={isSaving}
-                          >
-                            {isSaving ? 'Opslaan...' : 'Opslaan'}
-                          </button>
-                          <button
-                            className="button"
-                            style={{ backgroundColor: '#6c757d' }}
-                            onClick={() => {
-                              setIsEditing(false);
-                              loadPrompts(); // Reset naar opgeslagen versie
-                            }}
-                            disabled={isSaving}
-                          >
-                            Annuleren
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="prompt-content">
-                  {isEditing ? (
-                    <textarea
-                      className="prompt-editor"
-                      value={getCurrentPrompt(activeTab)}
-                      onChange={(e) => updatePrompt(activeTab, e.target.value)}
-                      placeholder="Voer de prompt in..."
-                    />
-                  ) : (
-                    <pre>{getFullPrompt(activeTab)}</pre>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+          <div className="settings-content">{renderContent()}</div>
         </div>
       </div>
     </div>
