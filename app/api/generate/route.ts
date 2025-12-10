@@ -146,7 +146,67 @@ Gebruik altijd deze schrijfstijl en tone of voice:
 - Gebruik altijd regio's: Haarlem en de ingevulde extra regio's
 - Gebruik waar passend advies in stappen: hoe werkt het, hoe pak je het aan, hoe combineer je materialen, styling ideeën
 - Schrijf altijd vanuit beleving en ervaringen: diner, feest, aankleding, sfeer, setting, momenten, tafels, gasten
-- gebruik geen streepjes in de uiteindelijke tekst`;
+- gebruik geen streepjes in de uiteindelijke tekst
+
+✅ RANKFLOW ADD-ON – SEO 2025 UITBREIDING (Optie A)
+(kant-en-klaar blok, direct onder de huidige regels toepassen)
+
+13. AI Summary Block (Google AI Overviews)
+- Elke pagina start met een kort AI-vriendelijk overzicht (1–2 zinnen)
+- Bevat focus keyword + regio’s
+- Beantwoordt direct de zoekintentie
+- Feitelijk, niet commercieel
+Voorbeeld: Glaswerk huren in Haarlem is eenvoudig geregeld. Wij leveren schoon materiaal, helpen met aantallen en verzorgen levering en retour in Haarlem, Hoofddorp en Amsterdam.
+
+14. Structured Data (Schema.org verplicht)
+- LocalBusiness (Broers Verhuur)
+- Service (voor verhuurdiensten)
+- Product (voor individuele verhuurartikelen)
+- FAQPage voor alle FAQ’s
+- BreadcrumbList
+- Schema moet matchen met de content; geen misleidende of incomplete velden
+
+15. GEO – Generative Engine Optimization
+- Gebruik entiteiten: Broers Verhuur, eventmateriaal, verhuurservice, glaswerkcategorieën
+- Verwerk taakgerichte zoekzinnen (bijv. “hoeveel glaswerk voor 50 personen”, “welke glazen voor een bruiloft”)
+- Duidelijke antwoorden (bullets toegestaan) met beschrijvende headings
+
+16. Topic Cluster Linking
+- 1 interne link naar een pillar page
+- 1 link naar een zijwaartse categorie
+- Content past logisch binnen cluster (glaswerk, servies, tafels, horeca)
+
+17. Core Web Vitals – Content-Ready Rules
+- Korte alinea’s, snelle eerste zin
+- Headings na max 200 woorden
+- Geen zware opmaak
+- Afbeeldingen geoptimaliseerd (modern format + lazy waar toepasbaar)
+
+18. Anti-Pattern Filter (AI Era)
+- Variatie in zinslengte en openingszinnen
+- Scenario’s afwisselen
+- Geen herhalende SEO-patronen
+- Semantische variatie bij synoniemen
+
+19. Regio-Context Controle
+- Haarlem verplicht; Region1 en Region2 variëren per pagina
+- Regio’s in context (scenario, bezorggebied, praktijkvoorbeeld)
+Voorbeeld: Voor een bruiloft in Haarlem of een diner in Hoofddorp leveren wij het glaswerk schoon aan huis.
+
+20. First Sentence Intent Rule
+- Eerste zin bevat focus keyword en geeft direct antwoord op de vraag
+- Helder, feitelijk, zonder marketingtaal, AI-vriendelijk
+Voorbeeld: Statafels huren in Haarlem is ideaal voor feesten en diners waarbij extra sta-ruimte nodig is.
+
+21. CTA’s – Taakgericht (geen marketing-taal)
+- Actiegericht, concreet, gebruikersgericht
+- Bevat focus keyword of variant
+Voorbeelden: Vraag aantallen aan; Bekijk alle glaswerk opties; Ontvang direct advies voor jouw feest
+
+22. Brand Entity Injection
+- Minimaal 1x merknaam per pagina
+- In combinatie met een dienst: “Broers Verhuur levert glaswerk voor horeca en events”
+- Nooit overdreven of salesgericht`;
 
 // Few-shot voorbeeld: Stijl imitatie (niet kopiëren, alleen nabootsen qua ritme en toon)
 const EXAMPLE_TEXT = `Voorbeeld van onze schrijfstijl (ritme en toon imiteren):
