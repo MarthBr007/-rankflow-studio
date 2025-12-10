@@ -3788,6 +3788,13 @@ h3 {
 
 .dashboard-header {
   margin-bottom: var(--spacing-3xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard-header > div:first-child {
+  flex: 1;
 }
 
 .dashboard-header h1 {

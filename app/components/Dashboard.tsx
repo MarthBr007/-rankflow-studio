@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { FileText, Folder, Package, PenTool, Share2, Settings, Library, Zap, Target, TrendingUp, Clock, CheckCircle, XCircle } from 'lucide-react';
 import ActivityFeed from './ActivityFeed';
+import UserIndicator from './UserIndicator';
 
 interface DashboardViewProps {
   onStartGenerating: () => void;
@@ -130,6 +131,9 @@ export default function DashboardView({ onStartGenerating }: DashboardViewProps)
         <div>
           <h1>RankFlow Studio</h1>
           <p>SEO Content Generator Dashboard</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <UserIndicator />
         </div>
       </div>
 
