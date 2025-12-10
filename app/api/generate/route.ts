@@ -4,6 +4,7 @@ import { join } from 'path';
 import { prisma } from '@/app/lib/prisma';
 import { decryptSecret } from '@/app/lib/crypto';
 import { validateByType } from '@/app/lib/schemas';
+import { sendWebhook } from '@/app/lib/webhook';
 
 // Logging interface
 interface GenerateLogData {
@@ -2083,8 +2084,8 @@ Alleen refinete JSON.`;
     // Voeg een harde timeout toe zodat de UI niet "blijft hangen" als de AI-call vastloopt
     const refineResponse = await Promise.race<string>([
       callAiWithRetry(
-        refinePrompt + '\n\nJSON om te verbeteren:\n' + JSON.stringify(existingJson, null, 2),
-        true,
+      refinePrompt + '\n\nJSON om te verbeteren:\n' + JSON.stringify(existingJson, null, 2), 
+      true, 
         1,
         2000
       ),
@@ -2243,7 +2244,7 @@ function enhanceSeoTitle(seo: any) {
   // Check of er al een power word is (exclusief "huren")
   const hasPower = powerWords.some((pw) => titleLower.includes(pw));
   const hasNumber = hasDigit(title);
-  
+
   // Check of focus keyword aan het BEGIN staat
   const startsWithFocusKeyword = titleLower.startsWith(focusKeywordLower);
   
@@ -2257,7 +2258,7 @@ function enhanceSeoTitle(seo: any) {
         const lastParts = parts.slice(-2); // Power word + getal
         const candidate = `${firstPart} – ${lastParts.join(' – ')}`;
         title = candidate.length <= 60 ? candidate : `${firstPart.slice(0, 57 - lastParts.join(' – ').length)}… – ${lastParts.join(' – ')}`;
-      } else {
+    } else {
         title = title.slice(0, 57) + '…';
       }
     }
@@ -2673,71 +2674,71 @@ export async function POST(request: NextRequest) {
     // zoals die uit de AI komt, zodat de specifieke velden behouden blijven.
     let normalizedJson: any;
     if (type === 'landing') {
-      // Nieuwe structuur heeft seo, content, faq, cta, etc. objecten
-      // Oude structuur heeft alles op root niveau
+    // Nieuwe structuur heeft seo, content, faq, cta, etc. objecten
+    // Oude structuur heeft alles op root niveau
       normalizedJson = draftJson.seo ? draftJson : {
-        seo: {
-          seoTitle: draftJson.seoTitle || '',
-          metaDescription: draftJson.metaDescription || '',
-          focusKeyword: draftJson.focusKeyword || draftJson.keyword || '',
-          secondaryKeywords: draftJson.secondaryKeywords || [],
-          urlSlug: draftJson.urlSlug || '',
-          searchIntent: draftJson.searchIntent || 'transactional',
-          searchIntentExplanation: draftJson.searchIntentExplanation || ''
-        },
-        headings: draftJson.headings || [],
-        content: {
-          h1: draftJson.h1 || '',
-          intro: draftJson.intro || '',
-          benefitsTitle: draftJson.benefitsTitle || '',
-          benefits: draftJson.benefits || [],
-          idealTitle: draftJson.idealTitle || '',
-          idealFor: draftJson.idealFor || [],
-          completeSetupTitle: draftJson.completeSetupTitle || '',
-          completeSetupText: draftJson.completeSetupText || '',
-          subcategoriesTitle: draftJson.subcategoriesTitle || '',
-          subcategoriesIntro: draftJson.subcategoriesIntro || '',
-          subcategories: draftJson.subcategories || [],
-          inspirationTitle: draftJson.inspirationTitle || '',
-          inspirationText: draftJson.inspirationText || '',
-          situationsTitle: draftJson.situationsTitle || '',
-          situations: draftJson.situations || [],
-          detailedScenarioTitle: draftJson.detailedScenarioTitle || '',
-          detailedScenario: draftJson.detailedScenario || '',
-          storytellingSceneTitle: draftJson.storytellingSceneTitle || '',
-          storytellingScene: draftJson.storytellingScene || '',
-          stylingTipsTitle: draftJson.stylingTipsTitle || '',
-          stylingTipsText: draftJson.stylingTipsText || '',
-          personalAdviceTitle: draftJson.personalAdviceTitle || '',
-          personalAdviceText: draftJson.personalAdviceText || '',
-          adviceTitle: draftJson.adviceTitle || '',
-          adviceText: draftJson.adviceText || '',
-          localBlock: draftJson.localBlock || { title: '', text: '' }
-        },
-        faq: {
-          faqTitle: draftJson.faqTitle || '',
-          items: draftJson.faq || [],
-          schemaFAQType: draftJson.schemaFAQType || 'FAQPage'
-        },
-        cta: {
-          ctaTitle: draftJson.ctaTitle || '',
-          ctaText: draftJson.ctaText || '',
-          ctaSuggestions: draftJson.ctaSuggestions || [],
-          nextSteps: draftJson.nextSteps || []
-        },
-        imageSEO: {
-          images: draftJson.imageSEO || []
-        },
-        links: {
-          internalLinks: draftJson.internalLinks || [],
-          externalLinks: draftJson.externalLinks || []
-        },
-        clusters: {
-          contentClusterIdeas: draftJson.contentClusterIdeas || []
-        },
-        readabilityHints: draftJson.readabilityHints || {},
-        schema: draftJson.schema || {}
-      };
+      seo: {
+        seoTitle: draftJson.seoTitle || '',
+        metaDescription: draftJson.metaDescription || '',
+        focusKeyword: draftJson.focusKeyword || draftJson.keyword || '',
+        secondaryKeywords: draftJson.secondaryKeywords || [],
+        urlSlug: draftJson.urlSlug || '',
+        searchIntent: draftJson.searchIntent || 'transactional',
+        searchIntentExplanation: draftJson.searchIntentExplanation || ''
+      },
+      headings: draftJson.headings || [],
+      content: {
+        h1: draftJson.h1 || '',
+        intro: draftJson.intro || '',
+        benefitsTitle: draftJson.benefitsTitle || '',
+        benefits: draftJson.benefits || [],
+        idealTitle: draftJson.idealTitle || '',
+        idealFor: draftJson.idealFor || [],
+        completeSetupTitle: draftJson.completeSetupTitle || '',
+        completeSetupText: draftJson.completeSetupText || '',
+        subcategoriesTitle: draftJson.subcategoriesTitle || '',
+        subcategoriesIntro: draftJson.subcategoriesIntro || '',
+        subcategories: draftJson.subcategories || [],
+        inspirationTitle: draftJson.inspirationTitle || '',
+        inspirationText: draftJson.inspirationText || '',
+        situationsTitle: draftJson.situationsTitle || '',
+        situations: draftJson.situations || [],
+        detailedScenarioTitle: draftJson.detailedScenarioTitle || '',
+        detailedScenario: draftJson.detailedScenario || '',
+        storytellingSceneTitle: draftJson.storytellingSceneTitle || '',
+        storytellingScene: draftJson.storytellingScene || '',
+        stylingTipsTitle: draftJson.stylingTipsTitle || '',
+        stylingTipsText: draftJson.stylingTipsText || '',
+        personalAdviceTitle: draftJson.personalAdviceTitle || '',
+        personalAdviceText: draftJson.personalAdviceText || '',
+        adviceTitle: draftJson.adviceTitle || '',
+        adviceText: draftJson.adviceText || '',
+        localBlock: draftJson.localBlock || { title: '', text: '' }
+      },
+      faq: {
+        faqTitle: draftJson.faqTitle || '',
+        items: draftJson.faq || [],
+        schemaFAQType: draftJson.schemaFAQType || 'FAQPage'
+      },
+      cta: {
+        ctaTitle: draftJson.ctaTitle || '',
+        ctaText: draftJson.ctaText || '',
+        ctaSuggestions: draftJson.ctaSuggestions || [],
+        nextSteps: draftJson.nextSteps || []
+      },
+      imageSEO: {
+        images: draftJson.imageSEO || []
+      },
+      links: {
+        internalLinks: draftJson.internalLinks || [],
+        externalLinks: draftJson.externalLinks || []
+      },
+      clusters: {
+        contentClusterIdeas: draftJson.contentClusterIdeas || []
+      },
+      readabilityHints: draftJson.readabilityHints || {},
+      schema: draftJson.schema || {}
+    };
     } else {
       normalizedJson = draftJson;
     }
@@ -2982,11 +2983,11 @@ export async function POST(request: NextRequest) {
             ? `${firstSentence} ${cleanedMeta}`
             : firstSentence;
 
-          // Truncate rond 155 karakters om Rank Math / SERP limieten te respecteren
-          if (newMeta.length > 155) {
-            newMeta = newMeta.slice(0, 152) + '…';
-          }
-          seo.metaDescription = newMeta;
+        // Truncate rond 155 karakters om Rank Math / SERP limieten te respecteren
+        if (newMeta.length > 155) {
+          newMeta = newMeta.slice(0, 152) + '…';
+        }
+        seo.metaDescription = newMeta;
         }
       }
 
@@ -3041,6 +3042,19 @@ export async function POST(request: NextRequest) {
     // Clear token usage
     (global as any).lastTokenUsage = null;
     
+    // Webhook notify (best-effort)
+    if (process.env.WEBHOOK_URLS) {
+      const urls = process.env.WEBHOOK_URLS.split(',').map((u) => u.trim()).filter(Boolean);
+      sendWebhook(urls, 'generate.success', {
+        organizationId,
+        type,
+        duration,
+        tokensUsed: tokenUsage?.total,
+        provider: logData.provider,
+        model: logData.model,
+      });
+    }
+    
     return NextResponse.json(improvedJson);
   } catch (error: any) {
     console.error('Error in generate API:', error);
@@ -3054,6 +3068,19 @@ export async function POST(request: NextRequest) {
       success: false,
       errorMessage: errorMessage.substring(0, 500), // Limit error message length
     } as GenerateLogData);
+
+    // Webhook notify (best-effort)
+    if (process.env.WEBHOOK_URLS) {
+      const urls = process.env.WEBHOOK_URLS.split(',').map((u) => u.trim()).filter(Boolean);
+      sendWebhook(urls, 'generate.error', {
+        organizationId,
+        type,
+        duration,
+        provider: logData.provider,
+        model: logData.model,
+        error: errorMessage.substring(0, 200),
+      });
+    }
     
     // Zorg ervoor dat we altijd JSON teruggeven, geen HTML
     return NextResponse.json(
