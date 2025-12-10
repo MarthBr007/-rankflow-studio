@@ -1263,13 +1263,22 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
 
           {/* Preview rechts */}
-          <div className="landing-preview">
-            <div className="landing-preview-header">
-              <div>
-                <h3>Live product preview</h3>
-                <p>Bekijk hoe deze productpagina er ongeveer uitziet op de site.</p>
-              </div>
-              <div className="landing-preview-device-toggle">
+          <div className={isPreviewModalOpen ? 'landing-preview-shell landing-preview-shell-overlay' : 'landing-preview-shell'}>
+            <div className="landing-preview">
+              <div className="landing-preview-header">
+                <div>
+                  <h3>Live product preview</h3>
+                  <p>Bekijk hoe deze productpagina er ongeveer uitziet op de site.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="landing-preview-fullscreen-button"
+                    onClick={() => setIsPreviewModalOpen((prev) => !prev)}
+                  >
+                    {isPreviewModalOpen ? 'Sluit fullscreen' : 'Open fullscreen'}
+                  </button>
+                  <div className="landing-preview-device-toggle">
                 <button
                   type="button"
                   className={
@@ -1300,8 +1309,9 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                 >
                   Mobile
                 </button>
+                  </div>
+                </div>
               </div>
-            </div>
 
             <div
               className={
@@ -3410,13 +3420,22 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
           </div>
 
           {/* Blog preview rechts */}
-          <div className="landing-preview">
-            <div className="landing-preview-header">
-              <div>
-                <h3>Live blog preview</h3>
-                <p>Zo leest dit artikel ongeveer op de site.</p>
-              </div>
-              <div className="landing-preview-device-toggle">
+          <div className={isPreviewModalOpen ? 'landing-preview-shell landing-preview-shell-overlay' : 'landing-preview-shell'}>
+            <div className="landing-preview">
+              <div className="landing-preview-header">
+                <div>
+                  <h3>Live blog preview</h3>
+                  <p>Zo leest dit artikel ongeveer op de site.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="landing-preview-fullscreen-button"
+                    onClick={() => setIsPreviewModalOpen((prev) => !prev)}
+                  >
+                    {isPreviewModalOpen ? 'Sluit fullscreen' : 'Open fullscreen'}
+                  </button>
+                  <div className="landing-preview-device-toggle">
                 <button
                   type="button"
                   className={
@@ -3619,6 +3638,7 @@ export default function ContentResult({ type, result, onRefine, isRefining, onRe
                 </main>
               </div>
             </div>
+          </div>
           </div>
         </div>
 
