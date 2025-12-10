@@ -206,7 +206,7 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
         </>
       )}
 
-      {(formData.type === 'landing' || formData.type === 'categorie' || formData.type === 'social') && (
+      {(formData.type === 'landing' || formData.type === 'categorie') && (
         <>
           <div className="form-group">
             <label htmlFor="region1">Regio 1</label>
