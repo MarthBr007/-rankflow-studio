@@ -2661,10 +2661,11 @@ h3 {
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: visible;
   display: flex;
   flex-direction: column;
-  max-height: 100%;
+  height: calc(100vh - 200px);
+  min-height: 600px;
+  overflow: hidden;
 }
 
 .settings-tabs {
@@ -2672,6 +2673,7 @@ h3 {
   border-bottom: 1px solid #e0e0e0;
   background-color: #f9f9f9;
   overflow-x: auto;
+  flex-shrink: 0;
 }
 
 .settings-tab {
@@ -2701,6 +2703,7 @@ h3 {
 .settings-content {
   padding: 2rem;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   min-height: 0;
 }
