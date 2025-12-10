@@ -23,6 +23,9 @@ interface ContentItem {
   type: string;
   title: string;
   createdAt: string;
+  updatedAt?: string;
+  currentVersion?: number;
+  versionCount?: number;
   data: any;
   preview?: string;
 }
@@ -38,6 +41,14 @@ function LibraryContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
   const { showToast } = useToast();
+  const [versions, setVersions] = useState<Array<{ version: number; createdAt: string }>>([]);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+  const [selectedVersionData, setSelectedVersionData] = useState<any | null>(null);
+  const [isLoadingVersionData, setIsLoadingVersionData] = useState(false);
+  const [diff, setDiff] = useState<any | null>(null);
+  const [isLoadingDiff, setIsLoadingDiff] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // Laad sidebar state
   useEffect(() => {
@@ -69,15 +80,109 @@ function LibraryContent() {
     }
   }, [searchParams, library]);
 
+  // Laad versies bij selectie van item
+  useEffect(() => {
+    if (selectedItem?.id) {
+      loadVersions(selectedItem.id);
+      setSelectedVersion(null);
+      setSelectedVersionData(null);
+      setDiff(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedItem?.id]);
+
   const loadLibrary = async () => {
     try {
       const response = await fetch('/api/library');
       const data = await response.json();
       setLibrary(data);
+      // Reset selection if existing item removed
+      if (selectedItem) {
+        const stillExists = data.find((i: ContentItem) => i.id === selectedItem.id);
+        if (!stillExists) {
+          setSelectedItem(null);
+        }
+      }
     } catch (error) {
       console.error('Error loading library:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadVersions = async (id: string) => {
+    setIsLoadingVersions(true);
+    try {
+      const res = await fetch(`/api/library/versions?id=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setVersions(data);
+      }
+    } catch (error) {
+      console.error('Error loading versions:', error);
+    } finally {
+      setIsLoadingVersions(false);
+    }
+  };
+
+  const loadVersionData = async (id: string, version: number) => {
+    setIsLoadingVersionData(true);
+    setDiff(null);
+    try {
+      const res = await fetch(`/api/library/versions?id=${id}&version=${version}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedVersionData(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading version data:', error);
+    } finally {
+      setIsLoadingVersionData(false);
+    }
+  };
+
+  const loadDiff = async (id: string, v1: number, v2: number) => {
+    setIsLoadingDiff(true);
+    try {
+      const res = await fetch(`/api/library/diff?id=${id}&v1=${v1}&v2=${v2}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDiff(data.diff);
+      }
+    } catch (error) {
+      console.error('Error loading diff:', error);
+    } finally {
+      setIsLoadingDiff(false);
+    }
+  };
+
+  const restoreVersion = async () => {
+    if (!selectedItem || !selectedVersion || !selectedVersionData) return;
+    setIsRestoring(true);
+    try {
+      const payload = {
+        id: selectedItem.id,
+        type: selectedItem.type,
+        title: selectedItem.title,
+        data: selectedVersionData,
+      };
+      const res = await fetch('/api/library', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Restore mislukt');
+      }
+      showToast(`Versie v${selectedVersion} hersteld als nieuwe versie`, 'success');
+      // Refresh library and versions
+      loadLibrary();
+      loadVersions(selectedItem.id);
+    } catch (error: any) {
+      showToast(error.message || 'Restore mislukt', 'error');
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -167,6 +272,7 @@ function LibraryContent() {
                 <h1>{selectedItem.title}</h1>
                 <p style={{ color: '#666', marginTop: '0.5rem' }}>
                   {getTypeLabel(selectedItem.type)} • {new Date(selectedItem.createdAt).toLocaleDateString('nl-NL')}
+                  {selectedItem.currentVersion ? ` • v${selectedItem.currentVersion}` : ''}
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -191,6 +297,123 @@ function LibraryContent() {
               </div>
             </div>
           </div>
+
+          {/* Versiebeheer */}
+          <div className="prompt-viewer" style={{ marginBottom: '1rem' }}>
+            <div className="prompt-header">
+              <h2>Versies</h2>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button className="button" onClick={() => loadVersions(selectedItem.id)} disabled={isLoadingVersions}>
+                  {isLoadingVersions ? 'Laden...' : 'Ververs'}
+                </button>
+                <button
+                  className="button ghost"
+                  onClick={() => {
+                    setSelectedVersion(null);
+                    setSelectedVersionData(null);
+                    setDiff(null);
+                  }}
+                >
+                  Reset selectie
+                </button>
+              </div>
+            </div>
+            <div className="prompt-content" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div style={{ minWidth: '220px' }}>
+                  <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 'bold' }}>
+                    Kies versie
+                  </label>
+                  <select
+                    value={selectedVersion ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value ? parseInt(e.target.value, 10) : null;
+                      setSelectedVersion(v);
+                      setSelectedVersionData(null);
+                      setDiff(null);
+                      if (v !== null) {
+                        loadVersionData(selectedItem.id, v);
+                      }
+                    }}
+                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                  >
+                    <option value="">Selecteer</option>
+                    {versions.map((v) => (
+                      <option key={v.version} value={v.version}>
+                        v{v.version} — {new Date(v.createdAt).toLocaleString('nl-NL')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    className="button ghost"
+                    onClick={() => {
+                      const currentV = selectedItem.currentVersion || (versions[0]?.version ?? null);
+                      if (currentV && selectedVersion && currentV !== selectedVersion) {
+                        loadDiff(selectedItem.id, currentV, selectedVersion);
+                      }
+                    }}
+                    disabled={!selectedVersion || isLoadingDiff}
+                  >
+                    {isLoadingDiff ? 'Diff...' : 'Toon diff met huidige'}
+                  </button>
+                  <button
+                    className="button"
+                    onClick={restoreVersion}
+                    disabled={!selectedVersion || !selectedVersionData || isRestoring}
+                    style={{ backgroundColor: '#0b5ed7', color: '#fff' }}
+                  >
+                    {isRestoring ? 'Herstellen...' : 'Herstel als nieuwe versie'}
+                  </button>
+                </div>
+              </div>
+
+              {isLoadingVersionData && <p style={{ color: '#666' }}>Versie laden...</p>}
+
+              {selectedVersionData && (
+                <div style={{ display: 'grid', gridTemplateColumns: diff ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                  <div>
+                    <h4 style={{ marginBottom: '0.5rem' }}>Geselecteerde versie {selectedVersion ? `v${selectedVersion}` : ''}</h4>
+                    <pre
+                      style={{
+                        background: '#f8f9fa',
+                        padding: '1rem',
+                        borderRadius: '4px',
+                        border: '1px solid #e2e8f0',
+                        minHeight: '260px',
+                        fontSize: '0.9rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {JSON.stringify(selectedVersionData, null, 2)}
+                    </pre>
+                  </div>
+                  {diff && (
+                    <div>
+                      <h4 style={{ marginBottom: '0.5rem' }}>Diff met huidige</h4>
+                      <pre
+                        style={{
+                          background: '#fffaf0',
+                          padding: '1rem',
+                          borderRadius: '4px',
+                          border: '1px solid #fbd38d',
+                          minHeight: '260px',
+                          fontSize: '0.9rem',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {JSON.stringify(diff, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           <ContentResult
             type={selectedItem.type}
             result={selectedItem.data}
