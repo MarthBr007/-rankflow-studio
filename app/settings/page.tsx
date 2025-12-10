@@ -87,191 +87,71 @@ Gebruik altijd deze schrijfstijl en tone of voice:
     social: '',
   });
 
-  // Default SEO rules text
-  const defaultSeoRulesText = `✅ RankFlow Studio – SEO-regels (geoptimaliseerd)
+  // Default SEO rules text (2025 update)
+  const defaultSeoRulesText = `✅ RankFlow Studio – SEO Regels 2025 (Volledig Geoptimaliseerd)
 
-Deze regels worden automatisch toegepast tijdens genereren én verbeteren van content. Ze combineren best practices van RankMath Pro, Google, Yoast en Semrush.
+De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepast bij genereren én verbeteren.
 
-1. Page Title (SEO Title)
+1. SEO Title (Page Title) – 2025
+- Max 60 tekens
+- MOET bevatten: focus keyword, power word, getal/benefit, regio Haarlem (verplicht), entiteit Broers Verhuur (aanbevolen)
+- Power words (niet schreeuwerig): compleet, overzicht, gids, inspiratie, praktische tips, voorbeeld, snel geregeld, zonder gedoe
+- Voorbeelden: “Glaswerk huren in Haarlem – compleet overzicht met 5 praktische tips”, “Servies huren Haarlem – snel geregeld met voorbeelden en inspiratie”
 
-Vereisten
-- Maximaal 60 tekens
-- MOET bevatten:
-  - focus keyword
-  - power word
-  - getal of concrete claim (3 tips, compleet, eenvoudig, checklist)
-  - regio (Haarlem verplicht)
-
-Aanbevolen power words
-- eenvoudig, compleet, direct, snel, checklist, gids, voorbeeld, inspiratie
-
-Voorbeelden
-- Servies huren in Haarlem – 5 handige tips eenvoudig geregeld
-- Glaswerk huren in Haarlem – snel en zonder gedoe
-
-2. Meta Description
-
-Vereisten
+2. Meta Description – 2025
 - Max 155 tekens
-- Bevat:
-  - focus keyword
-  - voordeel + actie
-  - alle 3 regio's (Haarlem + 2 andere)
-  - service belofte
+- Bevat: focus keyword, voordeel (1 zin), service-belofte, Haarlem + 2 regio’s, geen quotes/streepjes/marketingtaal
+- AI-era: kort, feitelijk, taakgericht (bruikbaar voor AI Overviews)
+- Voorbeeld: “Glaswerk huren in Haarlem Hoofddorp Amsterdam. Wij leveren schoon materiaal helpen met aantallen en regelen bezorging en retour. Reserveer eenvoudig.”
 
-Voorbeeld:
-Huur glaswerk in Haarlem, Hoofddorp en Amsterdam. Wij regelen materiaal en styling. Reserveer direct.
+3. Focus Keyword – herziene regels
+- Format: {onderwerp} huren
+- Moet in: SEO title, Meta description, URL, H1, Intro (eerste 2 zinnen), min 1 H2, CTA, min 3 image alts
+- Nieuw: semantisch ondersteunen met entiteiten via NLP (Broers Verhuur, eventmateriaal, verhuurservice, glaswerk categorieën)
+- Density: min 6, natuurlijk, niet in elke alinea
 
-Extra kwaliteitseisen
-- Geen aanhalingstekens
-- Geen streepjes
-- Geen overdreven marketingtaal
+4. Secondary Keywords – AI-aanpak
+- Minimaal 9 long-tail, natuurlijk, geen herhalingen
+- Categorieën: locatie, scenario’s, materiaal, evenement, probleemgericht, taakgericht
+- Voorbeelden: “hoeveel glaswerk huren voor 50 personen”, “servies huren zonder afwas”, “tafelsetting huren Haarlem tips”, “eventmateriaal voor bruiloften huren in Amsterdam”
 
-3. Focus Keyword
+5. URL Slug – Check
+- Format: {onderwerp}-huren-haarlem
+- URL bevat altijd Haarlem (entiteit), kort houden, geen jaartallen/herhalingen, geen stopwoorden/specials
 
-Format:
-- {onderwerp} huren
+6. Content Structuur – uitgebreid
+- Headings: H1 focus keyword; H2 long-tails/scenario’s; H3 stappen/hoeveelheden/checklist
+- Verplicht: 1 realistisch scenario, 1 storytelling scenario, 1 praktische adviesblok, 1 CTA, min 5 FAQ’s (vraagvorm)
+- Nieuw 2025:
+  ✔ AI Summary block bovenaan (2 zinnen samenvatting voor AI Overviews)
+  ✔ Structured data matcht headings
+  ✔ Entiteit-versterkende termen door de tekst
+  ✔ Regio’s min 3 keer natuurlijk
 
-Voorbeelden:
-- statafels huren
-- servies huren
-- glaswerk huren
+7. Internal Links – uitgebreid
+- 4–6 interne links, relevante anchors: “Bekijk glaswerk”, “Meer over servies”, “Bekijk statafels”
+- Nieuw: min 1 link naar pillar page, min 1 zijwaartse categorie, geen commerciële toon
 
-Moet verplicht voorkomen in:
-- SEO Title
-- Meta description
-- URL slug
-- H1
-- Intro alinea
-- Minimaal 1 subheading
-- CTA
-- Minimaal 3 image alt teksten
+8. External Links – E-E-A-T update
+- Min 1 bron, contextueel in de tekst
+- Toegestaan: .nl/.org/.gov/.edu/branche
+- Prefer: KHN, Wikipedia, Gemeente Haarlem, bruiloftsblogs; nooit webshops of commerciële concurrenten
 
-Keyword density (Google update aligned)
-- Minimaal 6 vermeldingen in de volledige tekst
-- Natuurlijk verwerkt
+9. Image SEO – bijgewerkt
+- 4–6 afbeeldingen; alt bevat scenario, regio, topic
+- Geen streepjes, geen marketingwoorden, geen dubbele alts, alt beschrijvend (AI context)
+- Voorbeeld: “glaswerk voor 50 personen tijdens diner in Haarlem”
 
-4. Secondary Keywords
+10. Quality Signals – AI & E-E-A-T
+- Moet bevatten: Expertise (aantallen, hoeveelheden, materiaalsoorten, situaties), Experience (praktijkvoorbeelden, scenario’s met tijd/locatie/doelgroep), Authority (advies uit ervaring, vergelijkingen), Trust (levering, schoon materiaal, afwas inbegrepen, servicebelofte)
+- Injecties: “wij leveren alles schoon en klaar voor gebruik”, “wij doen de afwas”, “wij denken mee over aantallen”, “wij regelen levering en retour”
+- Nieuw 2025: transparantieblok “Hoe wij werken”, review snippet (bescheiden), structured data: Service, LocalBusiness, Product
 
-Vereisten
-- Minimaal 9 secondary keywords
-- Natuurlijk geïnjecteerd in tekst
-- Altijd long-tail
-- Geen dubbele varianten
+11. Duplicate Content Protection – uitgebreid
+- Variaties op zinnen en alineas, scenario’s randomiseren, regio’s afwisselen (Haarlem altijd), FAQ’s herschrijven, patronen verminderen (AI penalty preventie)
 
-Categorieën:
-- locatie: Haarlem, Amsterdam, Hoofddorp
-- scenario's
-- materiaal
-- evenement
-- huren
-
-Voorbeelden:
-- tafelsetting huren
-- glaswerk huren Amsterdam
-- feestmateriaal zonder gedoe
-
-5. URL Slug
-
-Format:
-- {onderwerp}-huren-haarlem
-
-Regels:
-- altijd lowercase
-- altijd verbindingsstreepjes
-- geen stopwoorden
-- geen speciale tekens
-
-6. Content Structuur
-
-Headings:
-- H1 bevat focus keyword
-- H2's bevatten long-tail en scenario's
-
-Scoring (RankMath style)
-De content moet minimaal bevatten:
-- 1 volledig scenario
-- 1 storytelling scene
-- 1 CTA
-- 1 advies of tips block
-- 5 FAQ's
-
-Regio's:
-- Haarlem + Region1 + Region2
-- Minimaal 2 keer in de lopende tekst
-
-7. Internal Links
-
-4–6 interne links verplicht.
-
-Regels:
-- relevant
-- niet commercieel van toon
-- anchors zoals:
-  - Bekijk glaswerk
-  - Meer over servies
-
-Nooit:
-- klik hier
-- beste deal
-- goedkoop huren
-
-8. External Links
-
-Minimaal 1 externe bron.
-Toegestane domeintypes:
-- .nl, .gov, .edu, .org, branche websites
-
-Voorbeeld:
-- Wikipedia
-- Gemeente website
-- KHN
-- Wedding planners
-
-Dit verhoogt EEAT.
-
-9. Image SEO
-
-Altijd minimaal 4-6 afbeeldingen:
-
-Alt text regels:
-- bevat scenario
-- bevat regio
-- bevat het topic
-- Geen streepjes, geen marketingwoorden.
-
-10. Quality signals (Google EEAT compliant)
-
-Content moet automatisch voldoen aan:
-- Expertise: concrete materialen, aantallen, hoeveelheden
-- Experience: realistisch scenario
-- Authority: professioneel advies
-- Trustworthiness: service beloftes
-
-De AI voegt automatisch toe:
-- "wij leveren alles schoon en klaar voor gebruik"
-- "wij doen de afwas"
-- "wij denken mee over aantallen"
-- "wij regelen levering en retour"
-
-11. Duplicate content protection
-
-De applicatie:
-- herschrijft automatisch te korte of dubbele zinnen
-- voegt variaties toe voor SEO
-- voorkomt herhaling
-
-12. Add-ons (automatisch toegepast)
-
-✔ Keyword clustering volgens Google HCU
-✔ Humanized writing
-✔ Semantische variatie
-✔ NLP terms (entity SEO)
-✔ Scenario injectie
-✔ Regio injectie
-✔ CTA injectie
-✔ Internal linking generator
-✔ Image ALT optimizer`;
+12. Add-ons (automatisch)
+- Keyword clustering (Google HCU), Humanized writing, Semantische variatie, NLP terms, Scenario injectie, Regio injectie, CTA injectie, Internal linking generator, Image ALT optimizer`;
 
   // Laad prompts en config bij mount
   useEffect(() => {
