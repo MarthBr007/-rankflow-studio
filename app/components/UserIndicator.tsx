@@ -35,7 +35,25 @@ export default function UserIndicator() {
     }
   };
 
-  if (!user) return null;
+  // Show loading state or login prompt if no user
+  if (!user) {
+    return (
+      <div className="user-indicator">
+        <a 
+          href="/login" 
+          className="user-indicator-avatar"
+          style={{ 
+            background: '#6b7280',
+            textDecoration: 'none',
+            fontSize: '0.75rem'
+          }}
+          title="Inloggen"
+        >
+          <User size={16} />
+        </a>
+      </div>
+    );
+  }
 
   const initials = user.name 
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
