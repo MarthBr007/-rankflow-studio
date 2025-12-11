@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const contentId = searchParams.get('id');
     const version = searchParams.get('version');
     const organizationId = searchParams.get('organizationId');
+    const status = searchParams.get('status');
 
     // Haal specifieke versie op
     if (contentId && version) {
@@ -54,6 +55,9 @@ export async function GET(request: NextRequest) {
     if (organizationId) {
       where.organizationId = organizationId;
     }
+    if (status) {
+      where.status = status;
+    }
 
     const libraryItems = await prisma.libraryContent.findMany({
       where,
@@ -70,6 +74,8 @@ export async function GET(request: NextRequest) {
       id: item.id,
       type: item.contentType,
       title: item.title,
+      status: item.status,
+      tags: item.tags,
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString(),
       currentVersion: item.currentVersion,
@@ -92,7 +98,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, type, title, data, metadata, organizationId } = body;
+    const { id, type, title, data, metadata, organizationId, status, tags } = body;
 
     if (!type || !title || !data) {
       return NextResponse.json(
@@ -131,6 +137,8 @@ export async function POST(request: NextRequest) {
         data: {
           currentVersion: newVersion,
           title, // Update title als die is veranderd
+          status: status || undefined,
+          tags: tags || undefined,
         },
       });
 
@@ -148,6 +156,8 @@ export async function POST(request: NextRequest) {
         organizationId: organizationId || null,
         contentType: type,
         title,
+        status: status || 'draft',
+        tags: tags || [],
         currentVersion: 1,
         versions: {
           create: {
@@ -179,6 +189,50 @@ export async function POST(request: NextRequest) {
     console.error('Error saving library content:', error);
     return NextResponse.json(
       { error: error.message || 'Fout bij het opslaan van content' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH: status/tags bijwerken
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, status, tags } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'id is verplicht' }, { status: 400 });
+    }
+
+    const updated = await prisma.libraryContent.update({
+      where: { id },
+      data: {
+        status: status || undefined,
+        tags: Array.isArray(tags) ? tags : undefined,
+      },
+      include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
+    });
+
+    return NextResponse.json({
+      success: true,
+      item: {
+        id: updated.id,
+        type: updated.contentType,
+        title: updated.title,
+        status: updated.status,
+        tags: updated.tags,
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
+        currentVersion: updated.currentVersion,
+        data: updated.versions[0]?.data || null,
+        preview: updated.versions[0]?.preview || null,
+        versionCount: updated.versions.length,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error updating library content:', error);
+    return NextResponse.json(
+      { error: error.message || 'Fout bij het bijwerken van content' },
       { status: 500 }
     );
   }

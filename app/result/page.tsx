@@ -22,6 +22,7 @@ function ResultContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [tenantConfig, setTenantConfig] = useState<{ organizationId?: string; apiKey?: string; model?: string; provider?: string } | null>(null);
   const { showToast } = useToast();
+  const [selfCheck, setSelfCheck] = useState<string[]>([]);
 
   // Laad sidebar state uit localStorage
   useEffect(() => {
@@ -124,37 +125,35 @@ function ResultContent() {
     }
   };
 
-  const handleSave = async () => {
-    if (!result) return;
+  const buildTitle = () => {
+    const dateLabel = new Date().toLocaleDateString('nl-NL');
+    if (contentType === 'landing') {
+      const seoTitle = result.seo?.seoTitle || result.seoTitle;
+      const h1 = result.content?.h1 || result.h1;
+      const fk = result.seo?.focusKeyword || result.focusKeyword;
+      return seoTitle || h1 || fk || `Landingspagina ${dateLabel}`;
+    } else if (contentType === 'categorie') {
+      const h1 = result.h1;
+      const category = result.category || result.focusKeyword;
+      return h1 || category || `Categoriepagina ${dateLabel}`;
+    } else if (contentType === 'product') {
+      const productTitle = result.title || result.h1 || result.seoTitle;
+      return productTitle || `Productpagina ${dateLabel}`;
+    } else if (contentType === 'blog') {
+      const blogTitle = result.title || result.h1 || result.seoTitle;
+      return blogTitle || `Blog ${dateLabel}`;
+    } else if (contentType === 'social') {
+      const topic = result.topic || result.subject || 'Social post';
+      return `${topic} (${dateLabel})`;
+    }
+    return `Content ${dateLabel}`;
+  };
 
+  const handleSave = async (overrideTitle?: string) => {
+    if (!result) return;
     setIsSaving(true);
     try {
-      // Maak een duidelijke en herkenbare titel per type
-      const dateLabel = new Date().toLocaleDateString('nl-NL');
-      let title = '';
-
-      if (contentType === 'landing') {
-        const seoTitle = result.seo?.seoTitle || result.seoTitle;
-        const h1 = result.content?.h1 || result.h1;
-        const fk = result.seo?.focusKeyword || result.focusKeyword;
-        title = seoTitle || h1 || fk || `Landingspagina ${dateLabel}`;
-      } else if (contentType === 'categorie') {
-        const h1 = result.h1;
-        const category = result.category || result.focusKeyword;
-        title = h1 || category || `Categoriepagina ${dateLabel}`;
-      } else if (contentType === 'product') {
-        const productTitle = result.title || result.h1 || result.seoTitle;
-        title = productTitle || `Productpagina ${dateLabel}`;
-      } else if (contentType === 'blog') {
-        const blogTitle = result.title || result.h1 || result.seoTitle;
-        title = blogTitle || `Blog ${dateLabel}`;
-      } else if (contentType === 'social') {
-        const topic = result.topic || result.subject || 'Social post';
-        title = `${topic} (${dateLabel})`;
-      } else {
-        title = `Content ${dateLabel}`;
-      }
-      
+      const title = overrideTitle || buildTitle();
       const response = await fetch('/api/library', {
         method: 'POST',
         headers: {
@@ -164,19 +163,81 @@ function ResultContent() {
           type: contentType,
           title,
           data: result,
+          status: 'draft',
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Fout bij opslaan');
-      }
-
-      showToast('Content succesvol opgeslagen in library!', 'success');
+      if (!response.ok) throw new Error('Fout bij opslaan');
+      showToast(`Opgeslagen: ${title}`, 'success');
     } catch (err: any) {
       showToast('Fout bij opslaan: ' + (err.message || 'Onbekende fout'), 'error');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveVariants = async (count = 3) => {
+    if (!result) return;
+    setIsSaving(true);
+    try {
+      const baseTitle = buildTitle();
+      for (let i = 1; i <= count; i++) {
+        const variantTitle = `${baseTitle} (Variant ${i})`;
+        const res = await fetch('/api/library', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: contentType,
+            title: variantTitle,
+            data: result,
+            status: 'draft',
+          }),
+        });
+        if (!res.ok) throw new Error('Fout bij opslaan variant');
+      }
+      showToast(`${count} varianten opgeslagen`, 'success');
+    } catch (err: any) {
+      showToast('Fout bij varianten: ' + (err.message || 'Onbekende fout'), 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const runSelfCheck = () => {
+    if (!result) return;
+    const warnings: string[] = [];
+    const title = buildTitle();
+    if (title.length > 70) warnings.push('Titel is lang (>70 tekens).');
+    const meta = result.metaDescription || result.seo?.metaDescription;
+    if (meta && meta.length > 170) warnings.push('Meta description is lang (>170 tekens).');
+    if (!meta) warnings.push('Meta description ontbreekt.');
+    const h1 = result.h1 || result.content?.h1;
+    if (!h1) warnings.push('H1 ontbreekt.');
+    const kw = result.focusKeyword || result.seo?.focusKeyword;
+    if (!kw) warnings.push('Focus keyword ontbreekt.');
+    setSelfCheck(warnings);
+    showToast(warnings.length ? 'Self-check: er zijn aandachtspunten' : 'Self-check: OK', warnings.length ? 'warning' : 'success');
+  };
+
+  const downloadJson = () => {
+    if (!result) return;
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${buildTitle()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadMarkdown = () => {
+    if (!result) return;
+    const blob = new Blob([`# ${buildTitle()}\n\n${JSON.stringify(result, null, 2)}`], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${buildTitle()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
@@ -248,6 +309,75 @@ function ResultContent() {
             </div>
             <div className="result-header-actions">
               <button
+                onClick={runSelfCheck}
+                className="button button-secondary"
+                type="button"
+              >
+                Self-check
+              </button>
+              <button
+                onClick={() => handleSaveVariants(3)}
+                disabled={isSaving}
+                className="button button-secondary"
+                type="button"
+              >
+                3 varianten
+              </button>
+              <button
+                onClick={downloadJson}
+                className="button button-secondary"
+                type="button"
+              >
+                Download JSON
+              </button>
+              <button
+                onClick={downloadMarkdown}
+                className="button button-secondary"
+                type="button"
+              >
+                Download MD
+              </button>
+            <button
+              onClick={async () => {
+                if (!result) return;
+                try {
+                  const res = await fetch('/api/export/wordpress', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: buildTitle(), data: result }),
+                  });
+                  if (!res.ok) throw new Error('Export naar WordPress mislukt');
+                  showToast('Export (stub) naar WordPress verstuurd', 'success');
+                } catch (e: any) {
+                  showToast(e.message || 'Fout bij WordPress export', 'error');
+                }
+              }}
+              className="button button-secondary"
+              type="button"
+            >
+              Export WordPress
+            </button>
+            <button
+              onClick={async () => {
+                if (!result) return;
+                try {
+                  const res = await fetch('/api/export/webflow', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: buildTitle(), data: result }),
+                  });
+                  if (!res.ok) throw new Error('Export naar Webflow mislukt');
+                  showToast('Export (stub) naar Webflow verstuurd', 'success');
+                } catch (e: any) {
+                  showToast(e.message || 'Fout bij Webflow export', 'error');
+                }
+              }}
+              className="button button-secondary"
+              type="button"
+            >
+              Export Webflow
+            </button>
+              <button
                 onClick={handleSave}
                 disabled={isSaving}
                 className="button"
@@ -294,6 +424,19 @@ function ResultContent() {
             >
               Opnieuw proberen
             </button>
+          </div>
+        )}
+
+        {selfCheck.length > 0 && (
+          <div className="message warning">
+            <div>
+              <strong>Self-check aandachtspunten:</strong>
+              <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.2rem' }}>
+                {selfCheck.map((w, idx) => (
+                  <li key={idx}>{w}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
 

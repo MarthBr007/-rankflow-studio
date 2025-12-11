@@ -73,6 +73,28 @@ function HomeContent() {
     setResult(null);
     setContentType(formData.type);
 
+    const notifySlack = async (status: 'success' | 'error', message: string) => {
+      try {
+        await fetch('/api/notify/slack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status,
+            message,
+            contentType: formData.type,
+            meta: {
+              productName: formData.productName,
+              category: formData.category,
+              topic: formData.topic,
+              subject: formData.subject,
+            },
+          }),
+        });
+      } catch (err) {
+        console.warn('Slack notification failed', err);
+      }
+    };
+
     try {
       // Timeout controller voor fetch (3 minuten timeout)
       const controller = new AbortController();
@@ -118,6 +140,9 @@ function HomeContent() {
         sessionStorage.setItem('generatedContent', JSON.stringify(data));
         sessionStorage.setItem('contentType', formData.type);
       }
+
+      // Slack: succesvolle generatie
+      await notifySlack('success', 'Nieuwe content gegenereerd');
       router.push(`/result?type=${formData.type}`);
     } catch (err: any) {
       let errorMessage = 'Er is een fout opgetreden bij het genereren van content';
@@ -130,6 +155,8 @@ function HomeContent() {
       
       setError(errorMessage);
       showToast(errorMessage, 'error');
+      // Slack: foutmelding
+      await notifySlack('error', errorMessage);
       console.error('Error:', err);
       setIsLoading(false);
     } finally {

@@ -53,6 +53,8 @@ model LibraryContent {
   organizationId String?
   contentType   String
   title         String
+  status        String   @default("draft") // draft, review, approved
+  tags          String[] @default([])
   currentVersion Int     @default(1)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

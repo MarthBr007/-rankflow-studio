@@ -23,6 +23,8 @@ interface ContentItem {
   id: string;
   type: string;
   title: string;
+  status?: string;
+  tags?: string[];
   createdAt: string;
   updatedAt?: string;
   currentVersion?: number;
@@ -39,6 +41,9 @@ function LibraryContent() {
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [userRole, setUserRole] = useState<string>('user');
+  const [pendingTags, setPendingTags] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
   const { showToast } = useToast();
@@ -52,6 +57,18 @@ function LibraryContent() {
   const [isLoadingDiff, setIsLoadingDiff] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const notifySlack = async (status: 'success' | 'error', message: string) => {
+    try {
+      await fetch('/api/notify/slack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, message }),
+      });
+    } catch (err) {
+      console.warn('Slack notification failed', err);
+    }
+  };
 
   // Laad sidebar state
   useEffect(() => {
@@ -70,6 +87,21 @@ function LibraryContent() {
   // Laad library
   useEffect(() => {
     loadLibrary();
+  }, []);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user?.role) setUserRole(data.user.role);
+        }
+      } catch (e) {
+        console.warn('Kon gebruiker niet laden voor rol', e);
+      }
+    };
+    loadUser();
   }, []);
 
   // Check voor preview mode
@@ -125,6 +157,30 @@ function LibraryContent() {
       console.error('Error loading versions:', error);
     } finally {
       setIsLoadingVersions(false);
+    }
+  };
+
+  const updateStatus = async (id: string, status: string) => {
+    // Alleen editor/admin mag status wijzigen
+    if (!['admin', 'editor'].includes(userRole)) {
+      showToast('Alleen editor/admin mag status wijzigen', 'error');
+      return;
+    }
+    try {
+      const res = await fetch('/api/library', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+      if (!res.ok) throw new Error('Status bijwerken mislukt');
+      showToast(`Status bijgewerkt naar ${status}`, 'success');
+      await notifySlack('success', `Status gewijzigd naar ${status}`);
+      await loadLibrary();
+      if (selectedItem && selectedItem.id === id) {
+        setSelectedItem((prev) => prev ? { ...prev, status } : prev);
+      }
+    } catch (error: any) {
+      showToast(error.message || 'Fout bij bijwerken status', 'error');
     }
   };
 
@@ -190,6 +246,10 @@ function LibraryContent() {
   };
 
   const deleteItem = async (id: string) => {
+    if (!['admin', 'editor'].includes(userRole)) {
+      showToast('Alleen editor/admin mag verwijderen', 'error');
+      return;
+    }
     if (!confirm('Weet je zeker dat je dit item wilt verwijderen?')) {
       return;
     }
@@ -248,6 +308,10 @@ function LibraryContent() {
   const clearSelection = () => setSelectedIds([]);
 
   const bulkDelete = async () => {
+    if (!['admin', 'editor'].includes(userRole)) {
+      showToast('Alleen editor/admin mag bulk verwijderen', 'error');
+      return;
+    }
     if (selectedIds.length === 0) return;
     if (!confirm(`Weet je zeker dat je ${selectedIds.length} item(s) wilt verwijderen?`)) return;
     try {
@@ -320,13 +384,17 @@ function LibraryContent() {
   };
 
   const filteredLibrary = library.filter(item => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      item.title.toLowerCase().includes(query) ||
-      item.preview?.toLowerCase().includes(query) ||
-      getTypeLabel(item.type).toLowerCase().includes(query)
-    );
+    const matchesQuery = !searchQuery
+      ? true
+      : (
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.preview?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getTypeLabel(item.type).toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+    const matchesStatus = statusFilter === 'all' ? true : (item.status || 'draft') === statusFilter;
+
+    return matchesQuery && matchesStatus;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredLibrary.length / pageSize));
@@ -355,6 +423,66 @@ function LibraryContent() {
                   {getTypeLabel(selectedItem.type)} • {new Date(selectedItem.createdAt).toLocaleDateString('nl-NL')}
                   {selectedItem.currentVersion ? ` • v${selectedItem.currentVersion}` : ''}
                 </p>
+                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <span className={`library-status-badge status-${selectedItem.status || 'draft'}`}>
+                    {selectedItem.status || 'draft'}
+                  </span>
+                  <select
+                    value={selectedItem.status || 'draft'}
+                    onChange={(e) => updateStatus(selectedItem.id, e.target.value)}
+                    className="filter-select"
+                    style={{ minWidth: '140px' }}
+                    disabled={!['admin', 'editor'].includes(userRole)}
+                    title={!['admin', 'editor'].includes(userRole) ? 'Alleen editor/admin' : 'Status wijzigen'}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="review">Review</option>
+                    <option value="approved">Approved</option>
+                  </select>
+                </div>
+                <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    placeholder="Tags (komma-gescheiden)"
+                    value={pendingTags}
+                    onChange={(e) => setPendingTags(e.target.value)}
+                    className="search-input"
+                    style={{ maxWidth: '320px', paddingLeft: '0.75rem' }}
+                  />
+                  <button
+                    className="button button-secondary"
+                    disabled={!['admin', 'editor'].includes(userRole)}
+                    onClick={async () => {
+                      const tags = pendingTags.split(',').map(t => t.trim()).filter(Boolean);
+                      try {
+                        const res = await fetch('/api/library', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ id: selectedItem.id, tags }),
+                        });
+                        if (!res.ok) throw new Error('Tags bijwerken mislukt');
+                        showToast('Tags bijgewerkt', 'success');
+                        setSelectedItem(prev => prev ? { ...prev, tags } : prev);
+                        setLibrary(prev => prev.map(it => it.id === selectedItem.id ? { ...it, tags } : it));
+                        await notifySlack('success', `Tags bijgewerkt voor ${selectedItem.title}`);
+                      } catch (err: any) {
+                        showToast(err.message || 'Fout bij tags', 'error');
+                      }
+                    }}
+                    title={!['admin', 'editor'].includes(userRole) ? 'Alleen editor/admin' : 'Tags opslaan'}
+                  >
+                    Tags opslaan
+                  </button>
+                  {selectedItem.tags && selectedItem.tags.length > 0 && (
+                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      {selectedItem.tags.map((t) => (
+                        <span key={t} className="library-status-badge status-draft" style={{ background: '#eef2ff', color: '#4338ca' }}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
@@ -552,6 +680,22 @@ function LibraryContent() {
                   </button>
                 )}
               </div>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="filter-group">
+                  <label htmlFor="statusFilter">Status</label>
+                  <select
+                    id="statusFilter"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="all">Alle</option>
+                    <option value="draft">Draft</option>
+                    <option value="review">Review</option>
+                    <option value="approved">Approved</option>
+                  </select>
+                </div>
+              </div>
               {selectedIds.length > 0 && (
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                   <div style={{ fontSize: '0.95rem' }}>
@@ -656,10 +800,22 @@ function LibraryContent() {
                                 <p className="library-card-preview">{item.preview || 'Geen preview beschikbaar'}</p>
                                 <div className="library-card-meta">
                                   <span className="library-card-type">{getTypeLabel(item.type)}</span>
+                                  <span className={`library-status-badge status-${item.status || 'draft'}`}>
+                                    {item.status || 'draft'}
+                                  </span>
                                   <span className="library-card-date">
                                     {new Date(item.createdAt).toLocaleDateString('nl-NL')}
                                   </span>
                                 </div>
+                                {item.tags && item.tags.length > 0 && (
+                                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                                    {item.tags.map((t) => (
+                                      <span key={t} className="library-status-badge status-draft" style={{ background: '#eef2ff', color: '#4338ca' }}>
+                                        {t}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );

@@ -7,6 +7,14 @@ type ContentType = 'product' | 'categorie' | 'landing' | 'blog' | 'social';
 interface FormData {
   type: ContentType;
   language?: 'nl' | 'en' | 'de' | 'fr';
+  goal?: string;
+  targetAudience?: string;
+  toneOfVoice?: string;
+  persona?: string;
+  cta?: string;
+  usps?: string;
+  keywords?: string;
+  internalLinks?: string;
   // Product fields
   productName?: string;
   category?: string;
@@ -38,6 +46,14 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
     region1: 'Haarlem',
     region2: '',
     language: 'nl',
+    goal: '',
+    targetAudience: '',
+    toneOfVoice: '',
+    persona: '',
+    cta: '',
+    usps: '',
+    keywords: '',
+    internalLinks: '',
   });
   
   // Validation state
@@ -97,6 +113,97 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
   return (
     <form onSubmit={handleSubmit} className="form-container">
       <input type="hidden" name="type" value={formData.type} />
+
+      <div className="form-grid">
+        <div className="form-group">
+          <label htmlFor="goal">Doel</label>
+          <input
+            id="goal"
+            name="goal"
+            type="text"
+            placeholder="Wat wil je bereiken?"
+            value={formData.goal || ''}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="targetAudience">Doelgroep</label>
+          <input
+            id="targetAudience"
+            name="targetAudience"
+            type="text"
+            placeholder="Wie wil je bereiken?"
+            value={formData.targetAudience || ''}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="toneOfVoice">Tone of Voice</label>
+          <input
+            id="toneOfVoice"
+            name="toneOfVoice"
+            type="text"
+            placeholder="Bijv. vriendelijk, direct, informeel"
+            value={formData.toneOfVoice || ''}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="persona">Persona</label>
+          <input
+            id="persona"
+            name="persona"
+            type="text"
+            placeholder="Bijv. Marketing manager horeca"
+            value={formData.persona || ''}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="cta">CTA</label>
+          <input
+            id="cta"
+            name="cta"
+            type="text"
+            placeholder="Bijv. Vraag een offerte aan"
+            value={formData.cta || ''}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="usps">USP's</label>
+          <textarea
+            id="usps"
+            name="usps"
+            placeholder="Zet USP's onder elkaar"
+            value={formData.usps || ''}
+            onChange={handleChange}
+            rows={3}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="keywords">Keywords</label>
+          <input
+            id="keywords"
+            name="keywords"
+            type="text"
+            placeholder="Komma-gescheiden: keyword1, keyword2"
+            value={formData.keywords || ''}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="internalLinks">Interne links</label>
+          <textarea
+            id="internalLinks"
+            name="internalLinks"
+            placeholder="Eén per regel: anchor - url"
+            value={formData.internalLinks || ''}
+            onChange={handleChange}
+            rows={3}
+          />
+        </div>
+      </div>
 
       {formData.type === 'product' && (
         <>
