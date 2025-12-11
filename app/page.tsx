@@ -75,7 +75,7 @@ function HomeContent() {
 
     const notifySlack = async (status: 'success' | 'error', message: string) => {
       try {
-        await fetch('/api/notify/slack', {
+        const res = await fetch('/api/notify/slack', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -90,8 +90,13 @@ function HomeContent() {
             },
           }),
         });
+        if (!res.ok) {
+          console.warn('Slack notification failed with status', res.status);
+          showToast('Slack melding faalde', 'warning');
+        }
       } catch (err) {
         console.warn('Slack notification failed', err);
+        showToast('Slack melding faalde', 'warning');
       }
     };
 

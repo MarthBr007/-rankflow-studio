@@ -23,6 +23,9 @@ function ResultContent() {
   const [tenantConfig, setTenantConfig] = useState<{ organizationId?: string; apiKey?: string; model?: string; provider?: string } | null>(null);
   const { showToast } = useToast();
   const [selfCheck, setSelfCheck] = useState<string[]>([]);
+  const [linkSuggestions, setLinkSuggestions] = useState<Array<{ title: string; url: string; source: string }>>([]);
+  const [linkFilter, setLinkFilter] = useState('');
+  const [sitemapUrl, setSitemapUrl] = useState('');
 
   // Laad sidebar state uit localStorage
   useEffect(() => {
@@ -61,6 +64,21 @@ function ResultContent() {
     }
     setIsLoading(false);
   }, [searchParams]);
+
+  useEffect(() => {
+    const loadLinks = async () => {
+      try {
+        const res = await fetch('/api/internal-links');
+        if (res.ok) {
+          const data = await res.json();
+          setLinkSuggestions(data);
+        }
+      } catch (e) {
+        console.warn('Kon interne links niet laden', e);
+      }
+    };
+    loadLinks();
+  }, []);
 
   // Laad tenant config uit localStorage (zelfde key voor refine)
   useEffect(() => {
@@ -214,6 +232,12 @@ function ResultContent() {
     if (!h1) warnings.push('H1 ontbreekt.');
     const kw = result.focusKeyword || result.seo?.focusKeyword;
     if (!kw) warnings.push('Focus keyword ontbreekt.');
+    const ogTitle = result.ogTitle || result.seo?.ogTitle || title;
+    if ((ogTitle || '').length > 80) warnings.push('OG title is lang (>80 tekens).');
+    const ogDesc = result.ogDescription || result.seo?.ogDescription || meta;
+    if (!ogDesc) warnings.push('OG description ontbreekt.');
+    const ogImage = result.ogImage || result.seo?.ogImage;
+    if (!ogImage) warnings.push('OG image ontbreekt (bijv. 1200x630).');
     setSelfCheck(warnings);
     showToast(warnings.length ? 'Self-check: er zijn aandachtspunten' : 'Self-check: OK', warnings.length ? 'warning' : 'success');
   };
@@ -347,7 +371,8 @@ function ResultContent() {
                     body: JSON.stringify({ title: buildTitle(), data: result }),
                   });
                   if (!res.ok) throw new Error('Export naar WordPress mislukt');
-                  showToast('Export (stub) naar WordPress verstuurd', 'success');
+                  const r = await res.json();
+                  showToast(r.link ? `WordPress draft aangemaakt: ${r.link}` : 'WordPress export gelukt', 'success');
                 } catch (e: any) {
                   showToast(e.message || 'Fout bij WordPress export', 'error');
                 }
@@ -367,7 +392,8 @@ function ResultContent() {
                     body: JSON.stringify({ title: buildTitle(), data: result }),
                   });
                   if (!res.ok) throw new Error('Export naar Webflow mislukt');
-                  showToast('Export (stub) naar Webflow verstuurd', 'success');
+                  const r = await res.json();
+                  showToast(r.id ? `Webflow draft aangemaakt (id ${r.id})` : 'Webflow export gelukt', 'success');
                 } catch (e: any) {
                   showToast(e.message || 'Fout bij Webflow export', 'error');
                 }
@@ -452,6 +478,121 @@ function ResultContent() {
             }
           }}
         />
+
+        {/* SEO & OG previews */}
+        <div className="prompt-viewer" style={{ marginTop: '1.5rem' }}>
+          <div className="prompt-header">
+            <h2>SEO & Social Preview</h2>
+          </div>
+          <div className="prompt-content" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+            <div style={{ padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>SERP Preview</h3>
+              <div style={{ fontSize: '0.95rem', color: '#202124', lineHeight: 1.4 }}>
+                <div style={{ color: '#1a0dab', fontSize: '1.05rem', marginBottom: '0.2rem' }}>
+                  {result.seoTitle || result.seo?.seoTitle || result.title || buildTitle()}
+                </div>
+                <div style={{ color: '#006621', fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                  broersverhuur.nl/{result.urlSlug || result.seo?.urlSlug || 'example'}
+                </div>
+                <div style={{ color: '#4d5156', fontSize: '0.9rem' }}>
+                  {result.metaDescription || result.seo?.metaDescription || 'Meta description voorbeeld'}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>Social / OG Preview</h3>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ background: '#f3f4f6', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+                  {result.ogImage || result.seo?.ogImage ? 'OG Image' : 'OG Image (1200x630) ontbreekt'}
+                </div>
+                <div style={{ padding: '0.85rem', background: '#fff' }}>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem', color: '#111827' }}>
+                    {result.ogTitle || result.seo?.ogTitle || result.seoTitle || buildTitle()}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#374151' }}>
+                    {result.ogDescription || result.seo?.ogDescription || result.metaDescription || 'OG description voorbeeld'}
+                  </div>
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#6b7280' }}>
+                    broersverhuur.nl/{result.urlSlug || result.seo?.urlSlug || 'example'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Interne link suggesties */}
+        <div className="prompt-viewer" style={{ marginTop: '1.5rem' }}>
+          <div className="prompt-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+            <h2>Interne link suggesties</h2>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Filter op titel/url"
+                value={linkFilter}
+                onChange={(e) => setLinkFilter(e.target.value)}
+                className="search-input"
+                style={{ maxWidth: '240px', paddingLeft: '0.75rem' }}
+              />
+              <input
+                type="text"
+                placeholder="Optioneel: sitemap URL"
+                value={sitemapUrl}
+                onChange={(e) => setSitemapUrl(e.target.value)}
+                className="search-input"
+                style={{ maxWidth: '320px', paddingLeft: '0.75rem' }}
+              />
+              <button
+                className="button button-secondary"
+                onClick={async () => {
+                  try {
+                    const url = sitemapUrl.trim();
+                    const res = await fetch(`/api/internal-links${url ? `?sitemapUrl=${encodeURIComponent(url)}` : ''}`);
+                    if (res.ok) {
+                      const data = await res.json();
+                      setLinkSuggestions(data);
+                      showToast('Sitemap geladen', 'success');
+                    } else {
+                      showToast('Sitemap laden mislukt', 'error');
+                    }
+                  } catch (e: any) {
+                    showToast(e.message || 'Sitemap laden mislukt', 'error');
+                  }
+                }}
+              >
+                Laden
+              </button>
+            </div>
+          </div>
+          <div className="prompt-content" style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+            {linkSuggestions
+              .filter((l) => {
+                if (!linkFilter) return true;
+                const q = linkFilter.toLowerCase();
+                return l.title.toLowerCase().includes(q) || l.url.toLowerCase().includes(q);
+              })
+              .map((l, idx) => (
+                <div key={idx} style={{ border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.85rem', background: '#fff', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <div style={{ fontWeight: 600, color: '#111827' }}>{l.title}</div>
+                  <div style={{ fontSize: '0.9rem', color: '#2563eb', wordBreak: 'break-all' }}>{l.url}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#6b7280' }}>
+                    <span>{l.source === 'sitemap' ? 'Sitemap' : 'Library'}</span>
+                    <button
+                      className="button button-secondary"
+                      onClick={() => navigator.clipboard.writeText(l.url)}
+                      type="button"
+                      style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
+                    >
+                      Kopieer
+                    </button>
+                  </div>
+                </div>
+              ))}
+            {linkSuggestions.length === 0 && (
+              <div style={{ color: '#666' }}>Geen suggesties gevonden.</div>
+            )}
+          </div>
+        </div>
 
         {isRefining && (
           <div className="loading-overlay">
