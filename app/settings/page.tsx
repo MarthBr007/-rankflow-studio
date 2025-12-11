@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import CopyButton from '../components/CopyButton';
 import { useToast } from '../components/ToastContainer';
+import UserIndicator from '../components/UserIndicator';
 import { 
   Bot, 
   FileText, 
@@ -1714,8 +1715,13 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
       />
       <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <div className="header">
-          <h1>Instellingen - Prompts & SEO-regels</h1>
-          <p>Beheer AI-configuratie, schrijfprompts en bekijk de belangrijkste RankFlow / RankMath SEO-regels.</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+            <div>
+              <h1>Instellingen - Prompts & SEO-regels</h1>
+              <p>Beheer AI-configuratie, schrijfprompts en bekijk de belangrijkste RankFlow / RankMath SEO-regels.</p>
+            </div>
+            <UserIndicator />
+          </div>
         </div>
 
         {saveMessage && (
