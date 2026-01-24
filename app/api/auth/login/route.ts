@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import { verifyPassword, setSessionCookie } from '@/app/lib/auth';
+import { rateLimiters } from '@/app/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    // Rate limiting (prevent brute force)
+    const rateLimitResponse = await rateLimiters.auth(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    let email, password;
+    try {
+      const body = await request.json();
+      email = body.email;
+      password = body.password;
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: 'Ongeldige request data' },
+        { status: 400 }
+      );
+    }
 
     // Validation
     if (!email || !password) {
@@ -15,9 +32,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+    } catch (dbError: any) {
+      console.error('Database error during login:', dbError);
+      // Check if it's a connection error
+      if (dbError.message?.includes('DATABASE_URL') || dbError.message?.includes('connection')) {
+        return NextResponse.json(
+          { error: 'Database verbinding mislukt. Controleer DATABASE_URL configuratie.' },
+          { status: 503 }
+        );
+      }
+      throw dbError;
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -62,8 +92,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Login error:', error);
+    // Ensure we always return valid JSON
+    const errorMessage = error?.message || 'Fout bij inloggen';
     return NextResponse.json(
-      { error: error.message || 'Fout bij inloggen' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

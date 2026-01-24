@@ -20,7 +20,15 @@ export default function LoginPage() {
   const checkSession = async () => {
     try {
       const response = await fetch('/api/auth/session');
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error('Session check failed');
+      }
+      const text = await response.text();
+      if (!text) {
+        setIsCheckingSession(false);
+        return;
+      }
+      const data = JSON.parse(text);
       if (data.user) {
         router.push('/');
       }
@@ -45,10 +53,23 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      // Check if response has content before parsing
+      const text = await response.text();
+      let data;
+      
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError, 'Response text:', text);
+          throw new Error('Ongeldige response van server');
+        }
+      } else {
+        throw new Error('Lege response van server');
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Fout bij inloggen');
+        throw new Error(data?.error || 'Fout bij inloggen');
       }
 
       // Redirect to home
