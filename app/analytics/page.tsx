@@ -4,6 +4,9 @@ import React, { useEffect, useState, Suspense } from 'react';
 import Sidebar from '../components/Sidebar';
 import UserIndicator from '../components/UserIndicator';
 import Breadcrumbs from '../components/Breadcrumbs';
+import MobileMenuButton from '../components/MobileMenuButton';
+import ThemeToggle from '../components/ThemeToggle';
+import { useIsMobile } from '../lib/useMediaQuery';
 
 interface LogItem {
   id: string;
@@ -30,6 +33,7 @@ interface LogResponse {
 
 export default function AnalyticsPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [filters, setFilters] = useState({
     organizationId: '',
     type: '',
@@ -38,6 +42,7 @@ export default function AnalyticsPage() {
   });
   const [logs, setLogs] = useState<LogResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     loadLogs();
@@ -78,21 +83,54 @@ export default function AnalyticsPage() {
     if (saved !== null) setIsSidebarCollapsed(JSON.parse(saved));
   }, []);
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  useEffect(() => {
+    if (isMobileMenuOpen && isMobile) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.sidebar') && !target.closest('.mobile-menu-button')) {
+          setIsMobileMenuOpen(false);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen, isMobile]);
+
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+      {isMobile && isMobileMenuOpen && (
+        <div 
+          className="sidebar-overlay active"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
       <Sidebar
         activeType="analytics"
         onTypeChange={() => {}}
-        isCollapsed={isSidebarCollapsed}
+        isCollapsed={isMobile ? false : isSidebarCollapsed}
         onToggleCollapse={toggleSidebar}
+        className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
       />
-      <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
         <div className="header">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
-              <Breadcrumbs />
-            </Suspense>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isMobile && (
+                <MobileMenuButton 
+                  isOpen={isMobileMenuOpen} 
+                  onClick={toggleMobileMenu} 
+                />
+              )}
+              <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+                <Breadcrumbs />
+              </Suspense>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <ThemeToggle />
               <UserIndicator />
             </div>
           </div>
@@ -114,7 +152,7 @@ export default function AnalyticsPage() {
                   value={filters.organizationId}
                   onChange={(e) => setFilters(prev => ({ ...prev, organizationId: e.target.value }))}
                   placeholder="bijv. klant-123"
-                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--color-border)', borderRadius: '4px', background: 'var(--color-bg-panel)', color: 'var(--color-text)' }}
                 />
               </div>
               <div style={{ minWidth: '160px' }}>
@@ -122,7 +160,7 @@ export default function AnalyticsPage() {
                 <select
                   value={filters.type}
                   onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--color-border)', borderRadius: '4px', background: 'var(--color-bg-panel)', color: 'var(--color-text)' }}
                 >
                   <option value="">Alle</option>
                   <option value="landing">Landing</option>
@@ -190,14 +228,14 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody>
                     {logs.items.map((log) => (
-                      <tr key={log.id} style={{ borderBottom: '1px solid #eee' }}>
+                      <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                         <Td>{new Date(log.createdAt).toLocaleString('nl-NL')}</Td>
                         <Td>{log.organizationId || '–'}</Td>
                         <Td>{log.contentType}</Td>
                         <Td>{log.provider} / {log.model}</Td>
                         <Td>{log.duration} ms</Td>
                         <Td>{log.tokensUsed ?? '–'}</Td>
-                        <Td style={{ color: log.success ? '#2e7d32' : '#c0392b', fontWeight: 600 }}>
+                        <Td style={{ color: log.success ? 'var(--color-success)' : 'var(--color-error)', fontWeight: 600 }}>
                           {log.success ? 'OK' : 'Error'}
                         </Td>
                         <Td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -221,13 +259,13 @@ function Metric({ label, value }: { label: string; value: string | number }) {
     <div
       style={{
         padding: '1rem 1.25rem',
-        background: '#f8f9fa',
+        background: 'var(--color-bg-panel)',
         borderRadius: '8px',
         minWidth: '140px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--color-border)',
       }}
     >
-      <div style={{ fontSize: '0.9rem', color: '#666' }}>{label}</div>
+      <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>{label}</div>
       <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{value}</div>
     </div>
   );
@@ -235,7 +273,7 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th style={{ textAlign: 'left', padding: '0.6rem', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+    <th style={{ textAlign: 'left', padding: '0.6rem', background: 'var(--color-bg-light)', borderBottom: '1px solid var(--color-border)' }}>
       {children}
     </th>
   );

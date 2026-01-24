@@ -11,6 +11,7 @@ import ImageGallery from '../components/ImageGallery';
 import CalendarView from '../components/CalendarView';
 import Breadcrumbs from '../components/Breadcrumbs';
 import EnhancedPostPreview from '../components/EnhancedPostPreview';
+import MobileMenuButton from '../components/MobileMenuButton';
 import { useIsMobile } from '../lib/useMediaQuery';
 
 // Helper functions
@@ -132,7 +133,7 @@ function AnalyticsView({ posts }: { posts: any[] }) {
             <Clock size={18} />
             <span>Volgende 7 dagen</span>
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#007bff' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--color-primary)' }}>
             {next7Days}
           </div>
         </div>
@@ -210,7 +211,7 @@ function AnalyticsView({ posts }: { posts: any[] }) {
                   <div style={{
                     width: '100%',
                     height: '24px',
-                    background: '#f0f0f0',
+                    background: 'var(--color-bg-light)',
                     borderRadius: '4px',
                     overflow: 'hidden'
                   }}>
@@ -250,7 +251,7 @@ function AnalyticsView({ posts }: { posts: any[] }) {
                   <div style={{
                     width: '100%',
                     height: '24px',
-                    background: '#f0f0f0',
+                    background: 'var(--color-bg-light)',
                     borderRadius: '4px',
                     overflow: 'hidden'
                   }}>
@@ -290,7 +291,7 @@ function AnalyticsView({ posts }: { posts: any[] }) {
                   <div style={{
                     width: '100%',
                     height: '24px',
-                    background: '#f0f0f0',
+                    background: 'var(--color-bg-light)',
                     borderRadius: '4px',
                     overflow: 'hidden'
                   }}>
@@ -598,6 +599,7 @@ function PlannerContent() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedPostIds, setSelectedPostIds] = useState<Set<string>>(new Set());
   const [isBulkMode, setIsBulkMode] = useState(false);
@@ -990,24 +992,58 @@ function PlannerContent() {
     }
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  useEffect(() => {
+    if (isMobileMenuOpen && isMobile) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.sidebar') && !target.closest('.mobile-menu-button')) {
+          setIsMobileMenuOpen(false);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen, isMobile]);
+
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+      {isMobile && isMobileMenuOpen && (
+        <div 
+          className="sidebar-overlay active"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
       <Sidebar 
         activeType="planner" 
         onTypeChange={() => {}}
-        isCollapsed={isSidebarCollapsed}
+        isCollapsed={isMobile ? false : isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
       />
-      <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
         <div className="header">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Breadcrumbs />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isMobile && (
+                <MobileMenuButton 
+                  isOpen={isMobileMenuOpen} 
+                  onClick={toggleMobileMenu} 
+                />
+              )}
+              <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+                <Breadcrumbs />
+              </Suspense>
+            </div>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
               <ThemeToggle />
               <UserIndicator />
               {isBulkMode && selectedPostIds.size > 0 && (
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem 1rem', background: '#f0f8ff', borderRadius: '6px', border: '1px solid #007bff' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#007bff' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.5rem 1rem', background: 'var(--color-bg-light)', borderRadius: '6px', border: '1px solid var(--color-primary)' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-primary)' }}>
                     {selectedPostIds.size} geselecteerd
                   </span>
                   <button
@@ -1035,7 +1071,7 @@ function PlannerContent() {
                   <button
                     className="button"
                     onClick={handleBulkDelete}
-                    style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', background: '#dc3545' }}
+                    style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem', background: 'var(--color-error)' }}
                     title="Verwijder geselecteerde posts"
                   >
                     Verwijderen
@@ -1089,7 +1125,7 @@ function PlannerContent() {
           <select
             value={selectedPlatform}
             onChange={(e) => setSelectedPlatform(e.target.value)}
-            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ddd' }}
+            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-bg-panel)', color: 'var(--color-text)' }}
           >
             <option value="all">Alle platforms</option>
             <option value="instagram">Instagram</option>
@@ -1100,7 +1136,7 @@ function PlannerContent() {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ddd' }}
+            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-bg-panel)', color: 'var(--color-text)' }}
           >
             <option value="all">Alle statussen</option>
             <option value="draft">Concept</option>
@@ -1140,7 +1176,7 @@ function PlannerContent() {
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>
             <div className="loading-spinner" />
-            <p style={{ marginTop: '1rem', color: '#666' }}>Posts laden...</p>
+            <p style={{ marginTop: '1rem', color: 'var(--color-text-muted)' }}>Posts laden...</p>
           </div>
         ) : viewMode === 'feed' ? (
           <div style={{ padding: '1rem' }}>
@@ -1761,9 +1797,9 @@ function PlannerContent() {
                 {!editingPost && templates.length > 0 && (
                   <div style={{
                     padding: '1rem',
-                    background: '#f8f9fa',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb'
+                background: 'var(--color-bg-panel)',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border)'
                   }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
                       <FileText size={16} style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }} />

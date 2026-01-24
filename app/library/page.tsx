@@ -8,6 +8,9 @@ import ContentResult from '../components/ContentResult';
 import { useToast } from '../components/ToastContainer';
 import UserIndicator from '../components/UserIndicator';
 import Breadcrumbs from '../components/Breadcrumbs';
+import MobileMenuButton from '../components/MobileMenuButton';
+import ThemeToggle from '../components/ThemeToggle';
+import { useIsMobile } from '../lib/useMediaQuery';
 import { 
   Trash2, 
   Eye, 
@@ -42,9 +45,11 @@ function LibraryContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [userRole, setUserRole] = useState<string>('user');
+  const isMobile = useIsMobile();
   const [pendingTags, setPendingTags] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
@@ -85,6 +90,23 @@ function LibraryContent() {
     setIsSidebarCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  useEffect(() => {
+    if (isMobileMenuOpen && isMobile) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.sidebar') && !target.closest('.mobile-menu-button')) {
+          setIsMobileMenuOpen(false);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen, isMobile]);
 
   // Laad library
   useEffect(() => {
@@ -410,19 +432,26 @@ function LibraryContent() {
 
   if (selectedItem) {
     return (
-      <div className="app-layout">
+      <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+        {isMobile && isMobileMenuOpen && (
+          <div 
+            className="sidebar-overlay active"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
         <Sidebar 
           activeType={selectedItem.type} 
           onTypeChange={() => {}}
-          isCollapsed={isSidebarCollapsed}
+          isCollapsed={isMobile ? false : isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
+          className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
         />
-        <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
           <div className="result-header">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <h1>{selectedItem.title}</h1>
-                <p style={{ color: '#666', marginTop: '0.5rem' }}>
+                <p style={{ color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
                   {getTypeLabel(selectedItem.type)} • {new Date(selectedItem.createdAt).toLocaleDateString('nl-NL')}
                   {selectedItem.currentVersion ? ` • v${selectedItem.currentVersion}` : ''}
                 </p>
@@ -547,7 +576,7 @@ function LibraryContent() {
                         loadVersionData(selectedItem.id, v);
                       }
                     }}
-                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--color-border)', borderRadius: '4px', background: 'var(--color-bg-panel)', color: 'var(--color-text)' }}
                   >
                     <option value="">Selecteer</option>
                     {versions.map((v) => (
@@ -581,7 +610,7 @@ function LibraryContent() {
                 </div>
               </div>
 
-              {isLoadingVersionData && <p style={{ color: '#666' }}>Versie laden...</p>}
+              {isLoadingVersionData && <p style={{ color: 'var(--color-text-muted)' }}>Versie laden...</p>}
 
               {selectedVersionData && (
                 <div style={{ display: 'grid', gridTemplateColumns: diff ? '1fr 1fr' : '1fr', gap: '1rem' }}>
@@ -638,22 +667,40 @@ function LibraryContent() {
   }
 
   return (
-    <div className="app-layout">
-      <Sidebar 
-        activeType="library" 
-        onTypeChange={() => {}}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={toggleSidebar}
-      />
-      <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <div className="header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Breadcrumbs />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <UserIndicator />
+    <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+        {isMobile && isMobileMenuOpen && (
+          <div 
+            className="sidebar-overlay active"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+        <Sidebar 
+          activeType="library" 
+          onTypeChange={() => {}}
+          isCollapsed={isMobile ? false : isSidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
+          className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
+        />
+        <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
+          <div className="header">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {isMobile && (
+                  <MobileMenuButton 
+                    isOpen={isMobileMenuOpen} 
+                    onClick={toggleMobileMenu} 
+                  />
+                )}
+                <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+                  <Breadcrumbs />
+                </Suspense>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <ThemeToggle />
+                <UserIndicator />
+              </div>
             </div>
           </div>
-        </div>
 
         {isLoading ? (
           <div className="loading">
@@ -726,7 +773,7 @@ function LibraryContent() {
 
             {filteredLibrary.length === 0 ? (
               <div className="empty-state">
-                <FileText size={64} style={{ color: '#ccc', marginBottom: '1rem' }} />
+                <FileText size={64} style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }} />
                 <h2>{searchQuery ? 'Geen resultaten gevonden' : 'Library is leeg'}</h2>
                 <p>
                   {searchQuery 

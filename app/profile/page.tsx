@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
 import UserIndicator from '../components/UserIndicator';
 import Breadcrumbs from '../components/Breadcrumbs';
+import MobileMenuButton from '../components/MobileMenuButton';
+import ThemeToggle from '../components/ThemeToggle';
+import { useIsMobile } from '../lib/useMediaQuery';
 import { useToast } from '../components/ToastContainer';
 import { User, Save, Lock, Mail, User as UserIcon } from 'lucide-react';
 
@@ -14,6 +17,8 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   const [user, setUser] = useState<{
     id: string;
@@ -50,6 +55,23 @@ export default function ProfilePage() {
     setIsSidebarCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  useEffect(() => {
+    if (isMobileMenuOpen && isMobile) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.sidebar') && !target.closest('.mobile-menu-button')) {
+          setIsMobileMenuOpen(false);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen, isMobile]);
 
   useEffect(() => {
     loadProfile();
@@ -220,20 +242,36 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+      {isMobile && isMobileMenuOpen && (
+        <div 
+          className="sidebar-overlay active"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
       <Sidebar 
         activeType="profile" 
         onTypeChange={() => {}}
-        isCollapsed={isSidebarCollapsed}
+        isCollapsed={isMobile ? false : isSidebarCollapsed}
         onToggleCollapse={toggleSidebar}
+        className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
       />
-      <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
         <div className="header">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
-              <Breadcrumbs />
-            </Suspense>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isMobile && (
+                <MobileMenuButton 
+                  isOpen={isMobileMenuOpen} 
+                  onClick={toggleMobileMenu} 
+                />
+              )}
+              <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+                <Breadcrumbs />
+              </Suspense>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <ThemeToggle />
               <UserIndicator />
             </div>
           </div>
@@ -299,12 +337,12 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #e5e7eb' }}>
+                <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--color-border)' }}>
                   <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Lock size={18} />
                     Wachtwoord wijzigen
                   </h3>
-                  <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
                     Laat leeg om wachtwoord niet te wijzigen
                   </p>
 
@@ -338,7 +376,7 @@ export default function ProfilePage() {
                           <div style={{
                             flex: 1,
                             height: '4px',
-                            backgroundColor: '#e5e7eb',
+                            backgroundColor: 'var(--color-border)',
                             borderRadius: '2px',
                             overflow: 'hidden'
                           }}>

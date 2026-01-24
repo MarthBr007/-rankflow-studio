@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import CopyButton from '../components/CopyButton';
 import UserIndicator from '../components/UserIndicator';
 import Breadcrumbs from '../components/Breadcrumbs';
+import MobileMenuButton from '../components/MobileMenuButton';
+import ThemeToggle from '../components/ThemeToggle';
+import { useIsMobile } from '../lib/useMediaQuery';
 import { 
   FileText, 
   Download, 
@@ -148,6 +151,8 @@ function downloadJson(data: any, filename: string) {
 
 export default function TemplatesPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set());
@@ -160,6 +165,23 @@ export default function TemplatesPage() {
       return next;
     });
   };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  useEffect(() => {
+    if (isMobileMenuOpen && isMobile) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.sidebar') && !target.closest('.mobile-menu-button')) {
+          setIsMobileMenuOpen(false);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen, isMobile]);
 
   React.useEffect(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
@@ -215,8 +237,8 @@ export default function TemplatesPage() {
       return (
         <div style={{
           padding: '1.5rem',
-          backgroundColor: '#fff',
-          borderTop: '1px solid #e5e7eb',
+          backgroundColor: 'var(--color-bg-panel)',
+          borderTop: '1px solid var(--color-border)',
           maxHeight: '600px',
           overflow: 'auto'
         }}>
@@ -229,7 +251,7 @@ export default function TemplatesPage() {
             padding: '2rem',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: '#111827' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--color-text)' }}>
               {content.h1 || seo.seoTitle || 'Landingspagina Titel'}
             </h1>
             {content.intro && (
@@ -239,12 +261,12 @@ export default function TemplatesPage() {
             )}
             {content.benefits && content.benefits.length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text)' }}>
                   {content.benefitsTitle || 'Voordelen'}
                 </h2>
                 <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {content.benefits.map((benefit: string, index: number) => (
-                    <li key={index} style={{ fontSize: '0.9375rem', color: '#374151' }}>
+                    <li key={index} style={{ fontSize: '0.9375rem', color: 'var(--color-text)' }}>
                       {benefit}
                     </li>
                   ))}
@@ -253,7 +275,7 @@ export default function TemplatesPage() {
             )}
             {data.faq && data.faq.items && data.faq.items.length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text)' }}>
                   {data.faq.faqTitle || 'Veelgestelde vragen'}
                 </h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -295,8 +317,8 @@ export default function TemplatesPage() {
       return (
         <div style={{
           padding: '1.5rem',
-          backgroundColor: '#fff',
-          borderTop: '1px solid #e5e7eb',
+          backgroundColor: 'var(--color-bg-panel)',
+          borderTop: '1px solid var(--color-border)',
           maxHeight: '600px',
           overflow: 'auto'
         }}>
@@ -309,7 +331,7 @@ export default function TemplatesPage() {
             padding: '2rem',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: '#111827' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--color-text)' }}>
               {data.h1 || data.seoTitle || 'Blog Titel'}
             </h1>
             {data.intro && (
@@ -321,7 +343,7 @@ export default function TemplatesPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {data.sections.slice(0, 2).map((section: any, index: number) => (
                   <div key={index}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text)' }}>
                       {section.title}
                     </h2>
                     <p style={{ fontSize: '0.9375rem', color: '#374151', lineHeight: 1.6 }}>
@@ -333,12 +355,12 @@ export default function TemplatesPage() {
             )}
             {data.steps && data.steps.length > 0 && (
               <div style={{ marginTop: '1.5rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text)' }}>
                   {data.stepsTitle || 'Stappenplan'}
                 </h2>
                 <ol style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {data.steps.slice(0, 3).map((step: string, index: number) => (
-                    <li key={index} style={{ fontSize: '0.9375rem', color: '#374151' }}>
+                    <li key={index} style={{ fontSize: '0.9375rem', color: 'var(--color-text)' }}>
                       {step}
                     </li>
                   ))}
@@ -354,8 +376,8 @@ export default function TemplatesPage() {
       return (
         <div style={{
           padding: '1.5rem',
-          backgroundColor: '#fff',
-          borderTop: '1px solid #e5e7eb',
+          backgroundColor: 'var(--color-bg-panel)',
+          borderTop: '1px solid var(--color-border)',
           maxHeight: '600px',
           overflow: 'auto'
         }}>
@@ -368,7 +390,7 @@ export default function TemplatesPage() {
             padding: '2rem',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: '#111827' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--color-text)' }}>
               {data.title || data.seoTitle || 'Product Titel'}
             </h1>
             {data.intro && (
@@ -378,12 +400,12 @@ export default function TemplatesPage() {
             )}
             {data.benefits && data.benefits.length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text)' }}>
                   {data.benefitsTitle || 'Voordelen'}
                 </h2>
                 <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {data.benefits.map((benefit: string, index: number) => (
-                    <li key={index} style={{ fontSize: '0.9375rem', color: '#374151' }}>
+                    <li key={index} style={{ fontSize: '0.9375rem', color: 'var(--color-text)' }}>
                       {benefit}
                     </li>
                   ))}
@@ -392,7 +414,7 @@ export default function TemplatesPage() {
             )}
             {data.idealFor && data.idealFor.length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text)' }}>
                   {data.idealTitle || 'Ideaal voor'}
                 </h2>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -458,20 +480,36 @@ export default function TemplatesPage() {
   };
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+      {isMobile && isMobileMenuOpen && (
+        <div 
+          className="sidebar-overlay active"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
       <Sidebar
         activeType="templates"
         onTypeChange={() => {}}
-        isCollapsed={isSidebarCollapsed}
+        isCollapsed={isMobile ? false : isSidebarCollapsed}
         onToggleCollapse={toggleSidebar}
+        className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
       />
-      <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
         <div className="header">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
-              <Breadcrumbs />
-            </Suspense>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isMobile && (
+                <MobileMenuButton 
+                  isOpen={isMobileMenuOpen} 
+                  onClick={toggleMobileMenu} 
+                />
+              )}
+              <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+                <Breadcrumbs />
+              </Suspense>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <ThemeToggle />
               <UserIndicator />
             </div>
           </div>

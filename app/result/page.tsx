@@ -10,6 +10,9 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { Save, Calendar, ArrowLeft, Download, FileText, Code, Sparkles } from 'lucide-react';
 import UserIndicator from '../components/UserIndicator';
 import Breadcrumbs from '../components/Breadcrumbs';
+import MobileMenuButton from '../components/MobileMenuButton';
+import ThemeToggle from '../components/ThemeToggle';
+import { useIsMobile } from '../lib/useMediaQuery';
 
 function ResultContent() {
   const searchParams = useSearchParams();
@@ -21,9 +24,11 @@ function ResultContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [tenantConfig, setTenantConfig] = useState<{ organizationId?: string; apiKey?: string; model?: string; provider?: string } | null>(null);
   const { showToast } = useToast();
+  const isMobile = useIsMobile();
   const [selfCheck, setSelfCheck] = useState<string[]>([]);
   const [linkSuggestions, setLinkSuggestions] = useState<Array<{ title: string; url: string; source: string }>>([]);
   const [linkFilter, setLinkFilter] = useState('');
@@ -43,6 +48,23 @@ function ResultContent() {
     setIsSidebarCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  useEffect(() => {
+    if (isMobileMenuOpen && isMobile) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.sidebar') && !target.closest('.mobile-menu-button')) {
+          setIsMobileMenuOpen(false);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen, isMobile]);
 
   useEffect(() => {
     // Haal result data op uit sessionStorage
@@ -365,14 +387,21 @@ function ResultContent() {
 
   if (isLoading) {
     return (
-      <div className="app-layout">
+      <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+        {isMobile && isMobileMenuOpen && (
+          <div 
+            className="sidebar-overlay active"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
         <Sidebar 
           activeType={contentType} 
           onTypeChange={() => {}}
-          isCollapsed={isSidebarCollapsed}
+          isCollapsed={isMobile ? false : isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
+          className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
         />
-        <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
           <div className="loading">
             <p>Resultaat wordt geladen...</p>
           </div>
@@ -383,14 +412,21 @@ function ResultContent() {
 
   if (error || !result) {
     return (
-      <div className="app-layout">
+      <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+        {isMobile && isMobileMenuOpen && (
+          <div 
+            className="sidebar-overlay active"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
         <Sidebar 
           activeType={contentType} 
           onTypeChange={() => {}}
-          isCollapsed={isSidebarCollapsed}
+          isCollapsed={isMobile ? false : isSidebarCollapsed}
           onToggleCollapse={toggleSidebar}
+          className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
         />
-        <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
           <div className="error">
             <strong>Fout:</strong> {error || 'Geen result data beschikbaar'}
           </div>
@@ -421,8 +457,19 @@ function ResultContent() {
         {/* Modern Header */}
         <div className="header">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Breadcrumbs />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isMobile && (
+                <MobileMenuButton 
+                  isOpen={isMobileMenuOpen} 
+                  onClick={toggleMobileMenu} 
+                />
+              )}
+              <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+                <Breadcrumbs />
+              </Suspense>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <ThemeToggle />
               <UserIndicator />
             </div>
           </div>
@@ -438,7 +485,7 @@ function ResultContent() {
                 Gegenereerde Content
               </h1>
             </div>
-            <p style={{ color: '#6b7280', fontSize: '1rem', margin: 0 }}>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem', margin: 0 }}>
               {contentType === 'landing' && 'Landingspagina'}
               {contentType === 'categorie' && 'Categoriepagina'}
               {contentType === 'product' && 'Productpagina'}
@@ -578,14 +625,14 @@ function ResultContent() {
           {selfCheck.length > 0 && (
             <div style={{
               padding: '1rem 1.5rem',
-              backgroundColor: '#fef3c7',
-              border: '1px solid #fde68a',
+              backgroundColor: 'var(--color-bg-panel)',
+              border: '1px solid var(--color-warning)',
               borderRadius: '8px',
               marginBottom: '1.5rem'
             }}>
               <div>
-                <strong style={{ color: '#92400e' }}>Self-check aandachtspunten:</strong>
-                <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.2rem', color: '#92400e' }}>
+                <strong style={{ color: 'var(--color-text)' }}>Self-check aandachtspunten:</strong>
+                <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.2rem', color: 'var(--color-text)' }}>
                   {selfCheck.map((w, idx) => (
                     <li key={idx}>{w}</li>
                   ))}
@@ -612,7 +659,7 @@ function ResultContent() {
               </div>
               <div className="settings-card-body">
                 <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-                  <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
+                  <div style={{ padding: '1.5rem', border: '1px solid var(--color-border)', borderRadius: '12px', background: 'var(--color-bg-panel)' }}>
                     <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.125rem', fontWeight: 600 }}>SERP Preview</h3>
                     <div style={{ fontSize: '0.95rem', color: '#202124', lineHeight: 1.4 }}>
                       <div style={{ color: '#1a0dab', fontSize: '1.05rem', marginBottom: '0.2rem', fontWeight: 500 }}>
@@ -626,10 +673,10 @@ function ResultContent() {
                       </div>
                     </div>
                   </div>
-                  <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
+                  <div style={{ padding: '1.5rem', border: '1px solid var(--color-border)', borderRadius: '12px', background: 'var(--color-bg-panel)' }}>
                     <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.125rem', fontWeight: 600 }}>Social / OG Preview</h3>
                     <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                      <div style={{ background: '#f3f4f6', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+                      <div style={{ background: 'var(--color-bg-light)', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
                         {result.ogImage || result.seo?.ogImage ? 'OG Image' : 'OG Image (1200x630) ontbreekt'}
                       </div>
                       <div style={{ padding: '0.85rem', background: '#fff' }}>
@@ -702,10 +749,10 @@ function ResultContent() {
                 return l.title.toLowerCase().includes(q) || l.url.toLowerCase().includes(q);
               })
               .map((l, idx) => (
-                <div key={idx} style={{ border: '1px solid #e5e7eb', borderRadius: '10px', padding: '0.85rem', background: '#fff', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  <div style={{ fontWeight: 600, color: '#111827' }}>{l.title}</div>
-                  <div style={{ fontSize: '0.9rem', color: '#2563eb', wordBreak: 'break-all' }}>{l.url}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#6b7280' }}>
+                <div key={idx} style={{ border: '1px solid var(--color-border)', borderRadius: '10px', padding: '0.85rem', background: 'var(--color-bg-panel)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--color-text)' }}>{l.title}</div>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--color-primary)', wordBreak: 'break-all' }}>{l.url}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                     <span>{l.source === 'sitemap' ? 'Sitemap' : 'Library'}</span>
                     <button
                       className="button button-secondary"
@@ -719,7 +766,7 @@ function ResultContent() {
                 </div>
               ))}
               {linkSuggestions.length === 0 && (
-                <div style={{ color: '#666' }}>Geen suggesties gevonden.</div>
+                <div style={{ color: 'var(--color-text-muted)' }}>Geen suggesties gevonden.</div>
               )}
             </div>
           </div>

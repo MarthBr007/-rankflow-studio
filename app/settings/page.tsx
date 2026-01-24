@@ -6,6 +6,9 @@ import CopyButton from '../components/CopyButton';
 import { useToast } from '../components/ToastContainer';
 import UserIndicator from '../components/UserIndicator';
 import Breadcrumbs from '../components/Breadcrumbs';
+import MobileMenuButton from '../components/MobileMenuButton';
+import ThemeToggle from '../components/ThemeToggle';
+import { useIsMobile } from '../lib/useMediaQuery';
 import { 
   Bot, 
   FileText, 
@@ -34,8 +37,10 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isEditingSeoRules, setIsEditingSeoRules] = useState(false);
   const [seoRulesText, setSeoRulesText] = useState('');
+  const isMobile = useIsMobile();
 
   // Laad sidebar state uit localStorage
   useEffect(() => {
@@ -51,6 +56,23 @@ export default function SettingsPage() {
     setIsSidebarCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  useEffect(() => {
+    if (isMobileMenuOpen && isMobile) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.sidebar') && !target.closest('.mobile-menu-button')) {
+          setIsMobileMenuOpen(false);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen, isMobile]);
   
   // AI Config state
   const [aiConfig, setAiConfig] = useState({
@@ -1471,7 +1493,9 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                     style={{
                       width: '100%',
                       padding: '0.75rem',
-                      border: '1px solid #ddd',
+                      border: '1px solid var(--color-border)',
+              background: 'var(--color-bg-panel)',
+              color: 'var(--color-text)',
                       borderRadius: '4px',
                       fontSize: '0.9375rem'
                     }}
@@ -1490,7 +1514,9 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                     style={{
                       width: '100%',
                       padding: '0.75rem',
-                      border: '1px solid #ddd',
+                      border: '1px solid var(--color-border)',
+              background: 'var(--color-bg-panel)',
+              color: 'var(--color-text)',
                       borderRadius: '4px',
                       fontSize: '0.9375rem'
                     }}
@@ -1510,7 +1536,9 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                     style={{
                       width: '100%',
                       padding: '0.75rem',
-                      border: '1px solid #ddd',
+                      border: '1px solid var(--color-border)',
+              background: 'var(--color-bg-panel)',
+              color: 'var(--color-text)',
                       borderRadius: '4px',
                       fontSize: '0.9375rem'
                     }}
@@ -1526,7 +1554,9 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                     style={{
                       width: '100%',
                       padding: '0.75rem',
-                      border: '1px solid #ddd',
+                      border: '1px solid var(--color-border)',
+              background: 'var(--color-bg-panel)',
+              color: 'var(--color-text)',
                       borderRadius: '4px',
                       fontSize: '0.9375rem'
                     }}
@@ -1573,7 +1603,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                         <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
                           {user.name || user.email}
                         </div>
-                        <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
                           {user.name && <div>{user.email}</div>}
                           <div>
                             Rol: <strong>{user.role}</strong> • 
@@ -1590,7 +1620,9 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                           onChange={(e) => updateUserRole(user.id, e.target.value as 'user' | 'admin')}
                           style={{
                             padding: '0.5rem',
-                            border: '1px solid #ddd',
+                            border: '1px solid var(--color-border)',
+              background: 'var(--color-bg-panel)',
+              color: 'var(--color-text)',
                             borderRadius: '4px',
                             fontSize: '0.875rem'
                           }}
@@ -1713,14 +1745,15 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             padding: '0.75rem',
-                            background: '#fff',
-                            border: '1px solid #ddd',
+                            background: 'var(--color-bg-panel)',
+                            border: '1px solid var(--color-border)',
+                            color: 'var(--color-text)',
                             borderRadius: '4px',
                           }}
                         >
                           <div style={{ flex: '1' }}>
                             <div style={{ fontWeight: 'bold' }}>{user.email}</div>
-                            <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
                               Rol: <strong>{user.role}</strong> • Toegevoegd: {new Date(user.createdAt).toLocaleDateString('nl-NL')}
                             </div>
                           </div>
@@ -1749,7 +1782,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                 </div>
 
                 {/* Permissions Info */}
-                <div style={{ padding: '1rem', background: '#e7f3ff', borderRadius: '4px', fontSize: '0.9rem' }}>
+                <div style={{ padding: '1rem', background: 'var(--color-bg-light)', borderRadius: '4px', fontSize: '0.9rem', color: 'var(--color-text)' }}>
                   <h4 style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Rol Permissies:</h4>
                   <ul style={{ marginLeft: '1.5rem', lineHeight: '1.8' }}>
                     <li><strong>Viewer:</strong> Kan content bekijken, geen wijzigingen</li>
@@ -1780,14 +1813,14 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                           justifyContent: 'space-between',
                           alignItems: 'center',
                           padding: '1rem',
-                          background: key.hasKey ? '#d4edda' : '#fff',
-                          border: `1px solid ${key.hasKey ? '#c3e6cb' : '#ddd'}`,
+                          background: key.hasKey ? 'var(--color-bg-light)' : 'var(--color-bg-panel)',
+                          border: `1px solid ${key.hasKey ? 'var(--color-success)' : 'var(--color-border)'}`,
                           borderRadius: '4px',
                         }}
                       >
                         <div>
                           <div style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{key.provider}</div>
-                          <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                          <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
                             Model: {key.model} {key.updatedAt && `• Bijgewerkt: ${new Date(key.updatedAt).toLocaleDateString('nl-NL')}`}
                           </div>
                         </div>
@@ -2452,24 +2485,40 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
   }
 
   return (
-    <div className="app-layout">
-      <Sidebar 
-        activeType="settings" 
-        onTypeChange={() => {}}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={toggleSidebar}
-      />
-      <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <div className="header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
-              <Breadcrumbs />
-            </Suspense>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <UserIndicator />
+    <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+        {isMobile && isMobileMenuOpen && (
+          <div 
+            className="sidebar-overlay active"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+        <Sidebar
+          activeType="settings"
+          onTypeChange={() => {}}
+          isCollapsed={isMobile ? false : isSidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
+          className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
+        />
+        <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
+          <div className="header">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {isMobile && (
+                  <MobileMenuButton 
+                    isOpen={isMobileMenuOpen} 
+                    onClick={toggleMobileMenu} 
+                  />
+                )}
+                <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+                  <Breadcrumbs />
+                </Suspense>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <ThemeToggle />
+                <UserIndicator />
+              </div>
             </div>
           </div>
-        </div>
 
         {saveMessage && (
           <div className={`message ${saveMessage.includes('Fout') ? 'error' : 'success'}`}>
