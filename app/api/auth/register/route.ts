@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import { hashPassword, setSessionCookie } from '@/app/lib/auth';
+import { validatePassword } from '@/app/lib/password-validation';
+import { rateLimiters } from '@/app/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await rateLimiters.auth(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const { email, password, name } = await request.json();
 
     // Validation
@@ -14,9 +22,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password.length < 6) {
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { error: 'Wachtwoord moet minimaal 6 tekens lang zijn' },
+        { error: 'Ongeldig emailadres formaat' },
+        { status: 400 }
+      );
+    }
+
+    // Password validation met strength check
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      return NextResponse.json(
+        {
+          error: 'Wachtwoord voldoet niet aan de vereisten',
+          details: passwordValidation.errors,
+          strength: passwordValidation.strength,
+        },
         { status: 400 }
       );
     }

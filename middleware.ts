@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { addSecurityHeaders } from './app/lib/security-headers';
 
 // Routes that don't require authentication
 const publicRoutes = ['/login', '/register'];
@@ -15,17 +16,20 @@ export function middleware(request: NextRequest) {
 
   // If user is logged in and tries to access auth pages, redirect to home
   if (isAuthRoute && sessionCookie) {
-    return NextResponse.redirect(new URL('/', request.url));
+    const response = NextResponse.redirect(new URL('/', request.url));
+    return addSecurityHeaders(response);
   }
 
   // If user is not logged in and tries to access protected pages, redirect to login
   if (!isPublicRoute && !sessionCookie) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(loginUrl);
+    return addSecurityHeaders(response);
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  return addSecurityHeaders(response);
 }
 
 export const config = {

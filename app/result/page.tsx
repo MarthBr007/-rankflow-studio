@@ -7,7 +7,9 @@ import Sidebar from '../components/Sidebar';
 import ContentResult from '../components/ContentResult';
 import { useToast } from '../components/ToastContainer';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Save } from 'lucide-react';
+import { Save, Calendar, ArrowLeft, Download, FileText, Code, Sparkles } from 'lucide-react';
+import UserIndicator from '../components/UserIndicator';
+import Breadcrumbs from '../components/Breadcrumbs';
 
 function ResultContent() {
   const searchParams = useSearchParams();
@@ -193,6 +195,103 @@ function ResultContent() {
     }
   };
 
+  const handleSaveToPlanner = async () => {
+    if (!result || contentType !== 'social') return;
+    setIsSaving(true);
+    try {
+      const socialData = result as any;
+      
+      // Maak posts aan voor elk platform/type
+      const postsToCreate = [];
+      
+      // Get imageId from result metadata if available
+      const imageId = (result as any).imageId || (result as any).selectedImageId || null;
+      const imageUrl = (result as any).imageUrl || null;
+
+      // Instagram Carousel
+      if (socialData.carousel) {
+        postsToCreate.push({
+          platform: 'instagram',
+          contentType: 'carousel',
+          title: socialData.topic || 'Instagram Carousel',
+          content: {
+            carousel: socialData.carousel,
+          },
+          hashtags: socialData.carousel.hashtags ? socialData.carousel.hashtags.split(' ') : [],
+          imageId: imageId,
+          imageUrl: imageUrl,
+          status: 'draft',
+        });
+      }
+      
+      // Instagram Reel
+      if (socialData.reel) {
+        postsToCreate.push({
+          platform: 'instagram',
+          contentType: 'reel',
+          title: socialData.topic || 'Instagram Reel',
+          content: {
+            reel: socialData.reel,
+          },
+          hashtags: socialData.reel.hashtags ? socialData.reel.hashtags.split(' ') : [],
+          imageId: imageId,
+          imageUrl: imageUrl,
+          status: 'draft',
+        });
+      }
+      
+      // LinkedIn Post
+      if (socialData.linkedin) {
+        postsToCreate.push({
+          platform: 'linkedin',
+          contentType: 'linkedin_post',
+          title: socialData.topic || 'LinkedIn Post',
+          content: {
+            linkedin: socialData.linkedin,
+          },
+          hashtags: socialData.linkedin.hashtags ? socialData.linkedin.hashtags.split(' ') : [],
+          imageId: imageId,
+          imageUrl: imageUrl,
+          status: 'draft',
+        });
+      }
+      
+      // Story
+      if (socialData.story) {
+        postsToCreate.push({
+          platform: 'instagram',
+          contentType: 'story',
+          title: socialData.topic || 'Instagram Story',
+          content: {
+            story: socialData.story,
+          },
+          imageId: imageId,
+          imageUrl: imageUrl,
+          status: 'draft',
+        });
+      }
+
+      // Maak alle posts aan
+      const promises = postsToCreate.map(post => 
+        fetch('/api/social-posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...post,
+            organizationId: tenantConfig?.organizationId || null,
+          }),
+        })
+      );
+
+      await Promise.all(promises);
+      showToast(`${postsToCreate.length} post(s) opgeslagen in planner`, 'success');
+    } catch (err: any) {
+      showToast('Fout bij opslaan in planner: ' + (err.message || 'Onbekende fout'), 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSaveVariants = async (count = 3) => {
     if (!result) return;
     setIsSaving(true);
@@ -319,126 +418,149 @@ function ResultContent() {
         onToggleCollapse={toggleSidebar}
       />
       <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <div className="result-header">
-          <div className="result-header-main">
-            <div className="result-header-text">
-              <h1>Gegenereerde Content</h1>
-              <p className="result-header-sub">
-                {contentType === 'landing' && 'Landingspagina'}
-                {contentType === 'categorie' && 'Categoriepagina'}
-                {contentType === 'product' && 'Productpagina'}
-                {contentType === 'blog' && 'Blog artikel'}
-                {contentType === 'social' && 'Social Media Posts'}
-              </p>
+        {/* Modern Header */}
+        <div className="header">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Breadcrumbs />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <UserIndicator />
             </div>
-            <div className="result-header-actions">
-              <button
-                onClick={runSelfCheck}
-                className="button button-secondary"
-                type="button"
-              >
-                Self-check
-              </button>
-              <button
-                onClick={() => handleSaveVariants(3)}
-                disabled={isSaving}
-                className="button button-secondary"
-                type="button"
-              >
-                3 varianten
-              </button>
-              <button
-                onClick={downloadJson}
-                className="button button-secondary"
-                type="button"
-              >
-                Download JSON
-              </button>
-              <button
-                onClick={downloadMarkdown}
-                className="button button-secondary"
-                type="button"
-              >
-                Download MD
-              </button>
-            <button
-              onClick={async () => {
-                if (!result) return;
-                try {
-                  const res = await fetch('/api/export/wordpress', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: buildTitle(), data: result }),
-                  });
-                  if (!res.ok) throw new Error('Export naar WordPress mislukt');
-                  const r = await res.json();
-                  showToast(r.link ? `WordPress draft aangemaakt: ${r.link}` : 'WordPress export gelukt', 'success');
-                } catch (e: any) {
-                  showToast(e.message || 'Fout bij WordPress export', 'error');
-                }
-              }}
-              className="button button-secondary"
-              type="button"
-            >
-              Export WordPress
-            </button>
-            <button
-              onClick={async () => {
-                if (!result) return;
-                try {
-                  const res = await fetch('/api/export/webflow', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: buildTitle(), data: result }),
-                  });
-                  if (!res.ok) throw new Error('Export naar Webflow mislukt');
-                  const r = await res.json();
-                  showToast(r.id ? `Webflow draft aangemaakt (id ${r.id})` : 'Webflow export gelukt', 'success');
-                } catch (e: any) {
-                  showToast(e.message || 'Fout bij Webflow export', 'error');
-                }
-              }}
-              className="button button-secondary"
-              type="button"
-            >
-              Export Webflow
-            </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="button"
-              >
-                <Save size={18} />
-                {isSaving ? 'Opslaan...' : 'Opslaan'}
-              </button>
-              <Link href="/" className="button button-secondary">
-                ← Nieuw genereren
-              </Link>
-            </div>
-          </div>
-          <div className="result-header-stepper">
-            {steps.map((step, index) => {
-              const isActive = step.id === 4;
-              const isCompleted = step.id < 4;
-              return (
-                <div
-                  key={step.id}
-                  className={
-                    'result-step' +
-                    (isCompleted ? ' result-step-completed' : '') +
-                    (isActive ? ' result-step-active' : '')
-                  }
-                >
-                  <div className="result-step-circle">
-                    {isCompleted ? '✓' : step.id}
-                  </div>
-                  <span className="result-step-label">{step.label}</span>
-                  {index < steps.length - 1 && <div className="result-step-line" />}
-                </div>
-              );
-            })}
           </div>
         </div>
+
+        {/* Page Content */}
+        <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Page Header */}
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <Sparkles size={28} style={{ color: 'var(--color-primary)' }} />
+              <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+                Gegenereerde Content
+              </h1>
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '1rem', margin: 0 }}>
+              {contentType === 'landing' && 'Landingspagina'}
+              {contentType === 'categorie' && 'Categoriepagina'}
+              {contentType === 'product' && 'Productpagina'}
+              {contentType === 'blog' && 'Blog artikel'}
+              {contentType === 'social' && 'Social Media Posts'}
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '0.75rem', 
+            flexWrap: 'wrap',
+            marginBottom: '2rem',
+            paddingBottom: '1.5rem',
+            borderBottom: '1px solid #e5e7eb'
+          }}>
+            {contentType === 'social' && (
+              <button
+                onClick={handleSaveToPlanner}
+                disabled={isSaving}
+                className="button"
+                type="button"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <Calendar size={18} />
+                Opslaan in Planner
+              </button>
+            )}
+            <button
+              onClick={runSelfCheck}
+              className="button button-secondary"
+              type="button"
+            >
+              Self-check
+            </button>
+            <button
+              onClick={() => handleSaveVariants(3)}
+              disabled={isSaving}
+              className="button button-secondary"
+              type="button"
+            >
+              3 varianten
+            </button>
+            <button
+              onClick={downloadJson}
+              className="button button-secondary"
+              type="button"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Code size={18} />
+              Download JSON
+            </button>
+            <button
+              onClick={downloadMarkdown}
+              className="button button-secondary"
+              type="button"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <FileText size={18} />
+              Download MD
+            </button>
+            {contentType !== 'social' && (
+              <>
+                <button
+                  onClick={async () => {
+                    if (!result) return;
+                    try {
+                      const res = await fetch('/api/export/wordpress', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: buildTitle(), data: result }),
+                      });
+                      if (!res.ok) throw new Error('Export naar WordPress mislukt');
+                      const r = await res.json();
+                      showToast(r.link ? `WordPress draft aangemaakt: ${r.link}` : 'WordPress export gelukt', 'success');
+                    } catch (e: any) {
+                      showToast(e.message || 'Fout bij WordPress export', 'error');
+                    }
+                  }}
+                  className="button button-secondary"
+                  type="button"
+                >
+                  Export WordPress
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!result) return;
+                    try {
+                      const res = await fetch('/api/export/webflow', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: buildTitle(), data: result }),
+                      });
+                      if (!res.ok) throw new Error('Export naar Webflow mislukt');
+                      const r = await res.json();
+                      showToast(r.id ? `Webflow draft aangemaakt (id ${r.id})` : 'Webflow export gelukt', 'success');
+                    } catch (e: any) {
+                      showToast(e.message || 'Fout bij Webflow export', 'error');
+                    }
+                  }}
+                  className="button button-secondary"
+                  type="button"
+                >
+                  Export Webflow
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => handleSave()}
+              disabled={isSaving}
+              className="button"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Save size={18} />
+              {isSaving ? 'Opslaan...' : 'Opslaan'}
+            </button>
+            <Link href="/" className="button button-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ArrowLeft size={18} />
+              Nieuw genereren
+            </Link>
+          </div>
 
         {refineError && (
           <div className="error">
@@ -453,76 +575,84 @@ function ResultContent() {
           </div>
         )}
 
-        {selfCheck.length > 0 && (
-          <div className="message warning">
-            <div>
-              <strong>Self-check aandachtspunten:</strong>
-              <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.2rem' }}>
-                {selfCheck.map((w, idx) => (
-                  <li key={idx}>{w}</li>
-                ))}
-              </ul>
+          {selfCheck.length > 0 && (
+            <div style={{
+              padding: '1rem 1.5rem',
+              backgroundColor: '#fef3c7',
+              border: '1px solid #fde68a',
+              borderRadius: '8px',
+              marginBottom: '1.5rem'
+            }}>
+              <div>
+                <strong style={{ color: '#92400e' }}>Self-check aandachtspunten:</strong>
+                <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.2rem', color: '#92400e' }}>
+                  {selfCheck.map((w, idx) => (
+                    <li key={idx}>{w}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <ContentResult
-          type={contentType}
-          result={result}
-          onRefine={handleRefine}
-          isRefining={isRefining}
-          onResultChange={(updated) => {
-            setResult(updated);
-            if (typeof window !== 'undefined') {
-              sessionStorage.setItem('generatedContent', JSON.stringify(updated));
-            }
-          }}
-        />
+          {/* Content Result */}
+          <ContentResult
+            type={contentType}
+            editedResult={result}
+            onRefine={handleRefine}
+            isRefining={isRefining}
+          />
 
-        {/* SEO & OG previews */}
-        <div className="prompt-viewer" style={{ marginTop: '1.5rem' }}>
-          <div className="prompt-header">
-            <h2>SEO & Social Preview</h2>
-          </div>
-          <div className="prompt-content" style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-            <div style={{ padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>SERP Preview</h3>
-              <div style={{ fontSize: '0.95rem', color: '#202124', lineHeight: 1.4 }}>
-                <div style={{ color: '#1a0dab', fontSize: '1.05rem', marginBottom: '0.2rem' }}>
-                  {result.seoTitle || result.seo?.seoTitle || result.title || buildTitle()}
+          {/* SEO & OG previews - alleen voor niet-social content */}
+          {contentType !== 'social' && (
+            <div className="settings-card" style={{ marginTop: '2rem' }}>
+              <div className="settings-card-header">
+                <div className="settings-card-title">
+                  <h2>SEO & Social Preview</h2>
                 </div>
-                <div style={{ color: '#006621', fontSize: '0.9rem', marginBottom: '0.2rem' }}>
-                  broersverhuur.nl/{result.urlSlug || result.seo?.urlSlug || 'example'}
-                </div>
-                <div style={{ color: '#4d5156', fontSize: '0.9rem' }}>
-                  {result.metaDescription || result.seo?.metaDescription || 'Meta description voorbeeld'}
+              </div>
+              <div className="settings-card-body">
+                <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+                  <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
+                    <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.125rem', fontWeight: 600 }}>SERP Preview</h3>
+                    <div style={{ fontSize: '0.95rem', color: '#202124', lineHeight: 1.4 }}>
+                      <div style={{ color: '#1a0dab', fontSize: '1.05rem', marginBottom: '0.2rem', fontWeight: 500 }}>
+                        {result.seoTitle || result.seo?.seoTitle || result.title || buildTitle()}
+                      </div>
+                      <div style={{ color: '#006621', fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                        broersverhuur.nl/{result.urlSlug || result.seo?.urlSlug || 'example'}
+                      </div>
+                      <div style={{ color: '#4d5156', fontSize: '0.9rem' }}>
+                        {result.metaDescription || result.seo?.metaDescription || 'Meta description voorbeeld'}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
+                    <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.125rem', fontWeight: 600 }}>Social / OG Preview</h3>
+                    <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                      <div style={{ background: '#f3f4f6', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+                        {result.ogImage || result.seo?.ogImage ? 'OG Image' : 'OG Image (1200x630) ontbreekt'}
+                      </div>
+                      <div style={{ padding: '0.85rem', background: '#fff' }}>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem', color: '#111827' }}>
+                          {result.ogTitle || result.seo?.ogTitle || result.seoTitle || buildTitle()}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#374151' }}>
+                          {result.ogDescription || result.seo?.ogDescription || result.metaDescription || 'OG description voorbeeld'}
+                        </div>
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#6b7280' }}>
+                          broersverhuur.nl/{result.urlSlug || result.seo?.urlSlug || 'example'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div style={{ padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>Social / OG Preview</h3>
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
-                <div style={{ background: '#f3f4f6', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
-                  {result.ogImage || result.seo?.ogImage ? 'OG Image' : 'OG Image (1200x630) ontbreekt'}
-                </div>
-                <div style={{ padding: '0.85rem', background: '#fff' }}>
-                  <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem', color: '#111827' }}>
-                    {result.ogTitle || result.seo?.ogTitle || result.seoTitle || buildTitle()}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: '#374151' }}>
-                    {result.ogDescription || result.seo?.ogDescription || result.metaDescription || 'OG description voorbeeld'}
-                  </div>
-                  <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#6b7280' }}>
-                    broersverhuur.nl/{result.urlSlug || result.seo?.urlSlug || 'example'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          )}
 
-        {/* Interne link suggesties */}
-        <div className="prompt-viewer" style={{ marginTop: '1.5rem' }}>
+          {/* Interne link suggesties - alleen voor niet-social content */}
+          {contentType !== 'social' && (
+            <div className="settings-card" style={{ marginTop: '2rem' }}>
           <div className="prompt-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
             <h2>Interne link suggesties</h2>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -588,10 +718,12 @@ function ResultContent() {
                   </div>
                 </div>
               ))}
-            {linkSuggestions.length === 0 && (
-              <div style={{ color: '#666' }}>Geen suggesties gevonden.</div>
-            )}
+              {linkSuggestions.length === 0 && (
+                <div style={{ color: '#666' }}>Geen suggesties gevonden.</div>
+              )}
+            </div>
           </div>
+          )}
         </div>
 
         {isRefining && (

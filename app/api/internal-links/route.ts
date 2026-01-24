@@ -35,11 +35,12 @@ export async function GET(request: NextRequest) {
     });
 
     for (const item of items) {
-      const slug = item.versions[0]?.metadata?.slug || item.versions[0]?.metadata?.urlSlug;
+      const metadata = item.versions[0]?.metadata as any;
+      const slug = metadata?.slug || metadata?.urlSlug;
       const title = item.title || slug || item.id;
       const url = slug
         ? `/${slug}`
-        : item.versions[0]?.metadata?.url || item.versions[0]?.metadata?.link || '#';
+        : metadata?.url || metadata?.link || '#';
       suggestions.push({
         title,
         url,

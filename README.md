@@ -1,14 +1,116 @@
-# Broers Verhuur - SEO Content Generator
+# RankFlow Studio - AI Content Generatie Platform
 
-Een Next.js applicatie voor het genereren van SEO-geoptimaliseerde content voor Broers Verhuur.
+Een krachtig Next.js platform voor het genereren van SEO-geoptimaliseerde content en social media posts met AI. Volledig white-label en multi-tenant ready.
 
-## Installatie
+## ✨ Features
+
+### 🎯 Content Generatie
+- **5 Content Types**: Blog, Product, Landing, Categorie, Social Media
+- **Multi-AI Provider Support**: OpenAI, Anthropic (Claude), Google (Gemini)
+- **Fast Mode**: 2-3x snellere generatie met geoptimaliseerde instellingen
+- **Image Upload**: Upload afbeeldingen voor social media posts
+- **SEO Optimalisatie**: Automatische SEO metadata, interne links, structured data
+- **Content Previews**: Visuele previews voor alle content types
+
+### 📅 Social Media Planner
+- **Calendar View**: Maand/week overzicht van geplande posts
+- **Bulk Actions**: Meerdere posts tegelijk beheren (delete, status wijzigen, export)
+- **Post Previews**: Instagram Carousel, Reel, LinkedIn Post previews
+- **Direct Posting**: Automatisch posten naar Instagram en LinkedIn
+- **Scheduler**: Automatische posting op geplande tijden
+- **Templates**: Herbruikbare social media templates
+
+### 🏢 Multi-Tenant / White Label
+- **Per-Tenant AI Configuratie**: Elke klant heeft eigen API key, model en provider
+- **Custom Prompts**: Per tenant eigen schrijfstijl en tone of voice
+- **Access Control**: Role-based permissions (viewer, editor, admin)
+- **Tenant Management**: Beheer meerdere klanten/organisaties
+
+### 📚 Content Library
+- **Versiebeheer**: Volledige versiegeschiedenis van alle content
+- **Status Management**: Draft, Review, Approved workflow
+- **Tags & Filtering**: Organiseer content met tags en filters
+- **Diff View**: Vergelijk verschillende versies
+- **Export**: JSON, Markdown, WordPress, Webflow export
+
+### 📊 Analytics & Logging
+- **Generation Logs**: Track alle content generaties
+- **Token Usage**: Monitor AI token verbruik
+- **Performance Metrics**: Generatie tijden en success rates
+- **Social Media Analytics**: Post statistieken (binnenkort)
+
+### 🔔 Integraties
+- **Slack Webhooks**: Volledige content notificaties in Slack
+- **Instagram API**: Direct posten naar Instagram Business accounts
+- **LinkedIn API**: Direct posten naar LinkedIn pages
+- **Webhook Support**: Custom webhooks voor externe systemen
+
+### ⚙️ Advanced Features
+- **Prompt Management**: Beheer en versiebeheer van AI prompts
+- **SEO Rules**: Configureerbare SEO richtlijnen
+- **User Management**: Beheer gebruikers en rollen
+- **Profile Management**: Wachtwoord wijzigen, profiel bewerken
+- **Real-time Collaboration**: Live presence indicators
+
+## 🚀 Quick Start
+
+### Installatie
 
 ```bash
+# Clone repository
+git clone <repository-url>
+cd content-bot
+
+# Installeer dependencies
 npm install
+
+# Setup database
+npx prisma generate
+npx prisma db push
+
+# Maak admin gebruiker
+node scripts/create-admin.js
 ```
 
-## Development
+### Environment Variables
+
+Maak een `.env.local` bestand:
+
+```bash
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/rankflow"
+
+# Session Security (NIEUW - vereist!)
+SESSION_SECRET="your-very-long-random-secret-key-min-32-chars"
+# Of gebruik NEXTAUTH_SECRET als fallback
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Encryption (vereist)
+ENCRYPTION_KEY="your-32-byte-encryption-key"
+
+# AI Providers (optioneel - kan ook via UI worden ingesteld)
+OPENAI_API_KEY="sk-..."
+ANTHROPIC_API_KEY="sk-ant-..."
+GOOGLE_API_KEY="..."
+
+# Social Media Integrations (optioneel)
+META_APP_ID="..."
+META_APP_SECRET="..."
+LINKEDIN_CLIENT_ID="..."
+LINKEDIN_CLIENT_SECRET="..."
+
+# Slack (optioneel)
+SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+
+# Pusher (voor real-time features)
+PUSHER_APP_ID="..."
+PUSHER_KEY="..."
+PUSHER_SECRET="..."
+PUSHER_CLUSTER="eu"
+```
+
+### Development Server
 
 ```bash
 npm run dev
@@ -16,61 +118,87 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in je browser.
 
-## AI Provider Configuratie (OpenAI ChatGPT)
+## 📖 Documentatie
 
-De applicatie is geconfigureerd om OpenAI's ChatGPT API te gebruiken.
+- **[USER_GUIDE.md](./USER_GUIDE.md)** - Volledige gebruikershandleiding
+- **[API_KEYS_GUIDE.md](./API_KEYS_GUIDE.md)** - Hoe API keys aanmaken
+- **[SOCIAL_MEDIA_SETUP.md](./SOCIAL_MEDIA_SETUP.md)** - Instagram & LinkedIn setup
+- **[SCHEDULER_SETUP.md](./SCHEDULER_SETUP.md)** - Automatische posting setup
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Deployment instructies
+- **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** - Database setup
 
-### Stap 1: Maak een `.env.local` bestand
+## 🏗️ Tech Stack
 
-Maak een bestand genaamd `.env.local` in de root van het project:
+- **Framework**: Next.js 14 (App Router)
+- **Database**: PostgreSQL met Prisma ORM
+- **Authentication**: NextAuth.js
+- **AI Providers**: OpenAI, Anthropic, Google
+- **Styling**: CSS Modules
+- **Real-time**: Pusher
+- **Image Processing**: Sharp
+- **Type Safety**: TypeScript
 
-```bash
-# OpenAI API Configuration
-OPENAI_API_KEY=sk-proj-je-api-key-hier
-
-# Optioneel: Kies het model (default is gpt-4o-mini)
-# Opties: gpt-4o-mini (goedkoper, snel), gpt-4o (beter, duurder), gpt-4-turbo
-OPENAI_MODEL=gpt-4o-mini
-```
-
-### Stap 2: Haal je OpenAI API key op
-
-1. Ga naar [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-2. Log in met je OpenAI account
-3. Klik op "Create new secret key"
-4. Kopieer de key en plak deze in je `.env.local` bestand
-
-### Stap 3: Kies een model (optioneel)
-
-- **gpt-4o-mini** (default): Goedkoper en snel, prima voor SEO teksten
-- **gpt-4o**: Beter kwaliteit, maar duurder
-- **gpt-4-turbo**: Goede balans tussen kwaliteit en snelheid
-
-De `callAi` functie in `app/api/generate/route.ts` is al geïmplementeerd en gebruikt automatisch je API key uit `.env.local`.
-
-## Content Types
-
-De applicatie ondersteunt 5 content types:
-
-1. **Product** - Productteksten met SEO titel, meta description, H1, beschrijvingen en CTA
-2. **Categorie** - Categoriepagina's met intro, voordelen en gebruikssituaties
-3. **Landing** - Landingspagina's met body blocks en FAQ
-4. **Blog** - Blogartikelen met secties
-5. **Social** - Social media posts voor Instagram of LinkedIn
-
-## Structuur
+## 📁 Project Structuur
 
 ```
 app/
-  ├── api/
-  │   └── generate/
-  │       └── route.ts          # API endpoint voor content generatie
-  ├── components/
-  │   ├── ContentForm.tsx       # Formulier component
-  │   ├── ContentResult.tsx     # Resultaat weergave
-  │   └── CopyButton.tsx          # Kopieer functionaliteit
-  ├── page.tsx                  # Hoofdpagina
-  ├── layout.tsx                # Root layout
-  └── globals.css               # Styling
+  ├── api/                    # API routes
+  │   ├── generate/          # Content generatie
+  │   ├── social-posts/      # Social media posts
+  │   ├── social-auth/       # OAuth integraties
+  │   ├── config/            # AI configuratie
+  │   └── ...
+  ├── components/             # React components
+  │   ├── ContentForm.tsx    # Content generatie formulier
+  │   ├── ContentResult.tsx  # Resultaat weergave
+  │   ├── CalendarView.tsx   # Calendar view
+  │   └── ...
+  ├── planner/               # Social media planner
+  ├── library/               # Content library
+  ├── settings/              # Settings pagina
+  └── ...
 ```
 
+## 🎯 Content Types
+
+### 1. Blog
+- **Input**: Titel, onderwerp, doelgroep, regio's
+- **Output**: Complete blog artikel (1500-2200 woorden) met SEO metadata, secties, FAQ's, interne links
+
+### 2. Product
+- **Input**: Productnaam, categorie, use case, doelgroep
+- **Output**: Product pagina met SEO titel, meta, H1, beschrijving, voordelen, CTA
+
+### 3. Landing
+- **Input**: Onderwerp, doelgroep, tone of voice
+- **Output**: Landing pagina met body blocks, FAQ's, scenario's
+
+### 4. Categorie
+- **Input**: Categorie naam, beschrijving
+- **Output**: Categorie pagina met intro, voordelen, gebruikssituaties
+
+### 5. Social Media
+- **Input**: Platform (Instagram/LinkedIn), onderwerp, afbeelding (optioneel)
+- **Output**: Social media post met optimale lengte voor het platform, hashtags, CTA
+
+## 🔐 Rollen & Permissions
+
+- **Viewer**: Content genereren, bekijken, opslaan
+- **Editor**: Alles van Viewer + content bewerken, status wijzigen, tags bewerken
+- **Admin**: Alles + prompts bewerken, gebruikers beheren, instellingen wijzigen
+
+## 🚀 Deployment
+
+Zie [DEPLOYMENT.md](./DEPLOYMENT.md) voor gedetailleerde deployment instructies.
+
+## 📝 License
+
+Proprietary - Alle rechten voorbehouden
+
+## 🤝 Support
+
+Voor vragen of problemen, raadpleeg de [USER_GUIDE.md](./USER_GUIDE.md) of neem contact op met je admin.
+
+---
+
+**Laatste update:** Januari 2025

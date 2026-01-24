@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
-import { getCurrentUser } from '@/app/lib/auth';
-import { hashPassword } from '@/app/lib/auth';
+import { getCurrentUser, hashPassword } from '@/app/lib/auth';
+import { validatePassword } from '@/app/lib/password-validation';
 
 // GET: List all users (admin only)
 export async function GET(request: NextRequest) {
@@ -58,9 +58,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password.length < 6) {
+    // Validate password with strength check
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
       return NextResponse.json(
-        { error: 'Wachtwoord moet minimaal 6 tekens lang zijn' },
+        {
+          error: 'Wachtwoord voldoet niet aan de vereisten',
+          details: passwordValidation.errors,
+          strength: passwordValidation.strength,
+        },
         { status: 400 }
       );
     }
@@ -140,9 +146,15 @@ export async function PUT(request: NextRequest) {
     if (name !== undefined) updateData.name = name;
     if (role && (role === 'user' || role === 'admin')) updateData.role = role;
     if (password) {
-      if (password.length < 6) {
+      // Validate password with strength check
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
         return NextResponse.json(
-          { error: 'Wachtwoord moet minimaal 6 tekens lang zijn' },
+          {
+            error: 'Wachtwoord voldoet niet aan de vereisten',
+            details: passwordValidation.errors,
+            strength: passwordValidation.strength,
+          },
           { status: 400 }
         );
       }

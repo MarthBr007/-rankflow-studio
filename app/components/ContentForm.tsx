@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ImageGallery from './ImageGallery';
 
 type ContentType = 'product' | 'categorie' | 'landing' | 'blog' | 'social';
 
@@ -23,24 +24,28 @@ interface FormData {
   description?: string;
   // Landing fields
   topic?: string;
-  goal?: string;
   // Blog fields
   subject?: string;
-  targetAudience?: string;
   // Social fields
   platform?: 'Instagram' | 'LinkedIn';
   // Common fields
   region1: string;
   region2: string;
+  // Image selection
+  selectedImageId?: string | null;
+  selectedImageUrl?: string | null;
+  // Performance
+  fastMode?: boolean;
 }
 
 interface ContentFormProps {
   onSubmit: (data: FormData) => Promise<void>;
   isLoading: boolean;
   defaultType?: ContentType;
+  organizationId?: string | null;
 }
 
-export default function ContentForm({ onSubmit, isLoading, defaultType = 'landing' }: ContentFormProps) {
+export default function ContentForm({ onSubmit, isLoading, defaultType = 'landing', organizationId }: ContentFormProps) {
   const [formData, setFormData] = useState<FormData>({
     type: defaultType,
     region1: 'Haarlem',
@@ -114,96 +119,99 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
     <form onSubmit={handleSubmit} className="form-container">
       <input type="hidden" name="type" value={formData.type} />
 
-      <div className="form-grid">
-        <div className="form-group">
-          <label htmlFor="goal">Doel</label>
-          <input
-            id="goal"
-            name="goal"
-            type="text"
-            placeholder="Wat wil je bereiken?"
-            value={formData.goal || ''}
-            onChange={handleChange}
-          />
+      {/* Algemene velden - alleen voor product en categorie */}
+      {formData.type === 'product' || formData.type === 'categorie' ? (
+        <div className="form-grid">
+          <div className="form-group">
+            <label htmlFor="goal">Doel</label>
+            <input
+              id="goal"
+              name="goal"
+              type="text"
+              placeholder="Wat wil je bereiken?"
+              value={formData.goal || ''}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="targetAudience">Doelgroep</label>
+            <input
+              id="targetAudience"
+              name="targetAudience"
+              type="text"
+              placeholder="Wie wil je bereiken?"
+              value={formData.targetAudience || ''}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="toneOfVoice">Tone of Voice</label>
+            <input
+              id="toneOfVoice"
+              name="toneOfVoice"
+              type="text"
+              placeholder="Bijv. vriendelijk, direct, informeel"
+              value={formData.toneOfVoice || ''}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="persona">Persona</label>
+            <input
+              id="persona"
+              name="persona"
+              type="text"
+              placeholder="Bijv. Marketing manager horeca"
+              value={formData.persona || ''}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="cta">CTA</label>
+            <input
+              id="cta"
+              name="cta"
+              type="text"
+              placeholder="Bijv. Vraag een offerte aan"
+              value={formData.cta || ''}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="usps">USP's</label>
+            <textarea
+              id="usps"
+              name="usps"
+              placeholder="Zet USP's onder elkaar"
+              value={formData.usps || ''}
+              onChange={handleChange}
+              rows={3}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="keywords">Keywords</label>
+            <input
+              id="keywords"
+              name="keywords"
+              type="text"
+              placeholder="Komma-gescheiden: keyword1, keyword2"
+              value={formData.keywords || ''}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="internalLinks">Interne links</label>
+            <textarea
+              id="internalLinks"
+              name="internalLinks"
+              placeholder="Eén per regel: anchor - url"
+              value={formData.internalLinks || ''}
+              onChange={handleChange}
+              rows={3}
+            />
+          </div>
         </div>
-        <div className="form-group">
-          <label htmlFor="targetAudience">Doelgroep</label>
-          <input
-            id="targetAudience"
-            name="targetAudience"
-            type="text"
-            placeholder="Wie wil je bereiken?"
-            value={formData.targetAudience || ''}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="toneOfVoice">Tone of Voice</label>
-          <input
-            id="toneOfVoice"
-            name="toneOfVoice"
-            type="text"
-            placeholder="Bijv. vriendelijk, direct, informeel"
-            value={formData.toneOfVoice || ''}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="persona">Persona</label>
-          <input
-            id="persona"
-            name="persona"
-            type="text"
-            placeholder="Bijv. Marketing manager horeca"
-            value={formData.persona || ''}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="cta">CTA</label>
-          <input
-            id="cta"
-            name="cta"
-            type="text"
-            placeholder="Bijv. Vraag een offerte aan"
-            value={formData.cta || ''}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="usps">USP's</label>
-          <textarea
-            id="usps"
-            name="usps"
-            placeholder="Zet USP's onder elkaar"
-            value={formData.usps || ''}
-            onChange={handleChange}
-            rows={3}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="keywords">Keywords</label>
-          <input
-            id="keywords"
-            name="keywords"
-            type="text"
-            placeholder="Komma-gescheiden: keyword1, keyword2"
-            value={formData.keywords || ''}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="internalLinks">Interne links</label>
-          <textarea
-            id="internalLinks"
-            name="internalLinks"
-            placeholder="Eén per regel: anchor - url"
-            value={formData.internalLinks || ''}
-            onChange={handleChange}
-            rows={3}
-          />
-        </div>
-      </div>
+      ) : null}
 
       {formData.type === 'product' && (
         <>
@@ -272,13 +280,14 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
       {formData.type === 'landing' && (
         <>
           <div className="form-group">
-            <label htmlFor="topic">Onderwerp (bijv. tafelgerei, meubilair, glaswerk)</label>
+            <label htmlFor="topic">Onderwerp / scenario *</label>
             <input
               id="topic"
               name="topic"
               type="text"
               value={formData.topic || ''}
               onChange={handleChange}
+              placeholder="bijv. tafelgerei, meubilair, glaswerk"
               required
             />
             {validationErrors.topic && (
@@ -287,26 +296,30 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               </div>
             )}
             <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
-              Minimaal 400 woorden, maximaal 600 woorden voor landingspagina's
+              De AI genereert automatisch: keywords, CTA's, USP's, interne links, tone of voice en meer
             </div>
           </div>
           <div className="form-group">
-            <label htmlFor="goal">Doel (wat de bezoeker wil bereiken)</label>
+            <label htmlFor="goal">Doel (optioneel)</label>
             <textarea
               id="goal"
               name="goal"
               value={formData.goal || ''}
               onChange={handleChange}
-              required
+              placeholder="Wat wil de bezoeker bereiken? (optioneel - AI kan dit ook afleiden)"
+              rows={2}
             />
+            <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
+              Optioneel: helpt de AI om de content beter af te stemmen op de zoekintentie
+            </div>
           </div>
         </>
       )}
 
       {formData.type === 'blog' && (
-        <>
+        <div className="form-grid">
           <div className="form-group">
-            <label htmlFor="subject">Titel/Onderwerp</label>
+            <label htmlFor="subject">Titel/Onderwerp *</label>
             <input
               id="subject"
               name="subject"
@@ -314,6 +327,7 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               value={formData.subject || ''}
               onChange={handleChange}
               required
+              placeholder="Bijv. RFID implementatie bij Broers Verhuur"
             />
             {validationErrors.subject && (
               <div style={{ color: '#E53935', fontSize: '0.875rem', marginTop: '0.25rem' }}>
@@ -321,11 +335,11 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               </div>
             )}
             <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
-              Blog posts: minimaal 800 woorden, maximaal 2000 woorden
+              Blog posts: minimaal 1500 woorden, maximaal 2200 woorden
             </div>
           </div>
           <div className="form-group">
-            <label htmlFor="targetAudience">Doelgroep</label>
+            <label htmlFor="targetAudience">Doelgroep *</label>
             <input
               id="targetAudience"
               name="targetAudience"
@@ -333,15 +347,16 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               value={formData.targetAudience || ''}
               onChange={handleChange}
               required
+              placeholder="Bijv. Event organisatoren, horeca ondernemers"
             />
           </div>
-        </>
+        </div>
       )}
 
       {formData.type === 'social' && (
         <>
           <div className="form-group">
-            <label htmlFor="subject">Onderwerp</label>
+            <label htmlFor="subject">Onderwerp / scenario</label>
             <input
               id="subject"
               name="subject"
@@ -356,6 +371,18 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               </div>
             )}
           </div>
+          <div className="form-group">
+            <label htmlFor="goal">Doel (optioneel)</label>
+            <input
+              id="goal"
+              name="goal"
+              type="text"
+              placeholder="Wat wil je bereiken? (optioneel)"
+              value={formData.goal || ''}
+              onChange={handleChange}
+            />
+          </div>
+
           <div className="form-group">
             <label htmlFor="platform">Platform</label>
             <select
@@ -402,6 +429,22 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
               </div>
             )}
           </div>
+          <div className="form-group">
+            <label>Afbeelding selecteren (optioneel)</label>
+            <div style={{ marginTop: '0.5rem' }}>
+              <ImageGallery
+                organizationId={organizationId}
+                onSelect={(image) => {
+                  setFormData(prev => ({ ...prev, selectedImageId: image.id }));
+                }}
+                selectedImageId={formData.selectedImageId}
+                showUploader={true}
+              />
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
+              Upload of selecteer een afbeelding (optioneel). De AI bepaalt caption, hashtags, contenttype en timing.
+            </div>
+          </div>
         </>
       )}
 
@@ -421,7 +464,7 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
         </select>
       </div>
 
-      {(formData.type === 'landing' || formData.type === 'categorie' || formData.type === 'social') && (
+      {(formData.type === 'landing' || formData.type === 'categorie' || formData.type === 'blog') && (
         <>
           <div className="form-group">
             <label htmlFor="region1">Regio 1 (optioneel)</label>
@@ -454,6 +497,23 @@ export default function ContentForm({ onSubmit, isLoading, defaultType = 'landin
           </div>
         </>
       )}
+
+      <div className="form-group" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 'normal' }}>
+          <input
+            type="checkbox"
+            checked={formData.fastMode || false}
+            onChange={(e) => setFormData(prev => ({ ...prev, fastMode: e.target.checked }))}
+            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+          />
+          <div>
+            <strong>Snelle modus</strong>
+            <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
+              Gebruikt snellere modellen en optimalisaties voor snellere generatie (2-3x sneller). Kwaliteit blijft hoog.
+            </div>
+          </div>
+        </label>
+      </div>
 
       <button type="submit" className="button" disabled={isLoading}>
         {isLoading ? 'Genereren...' : 'Genereren'}

@@ -45,10 +45,6 @@ export default function PresenceBar() {
         headers: {
           'Content-Type': 'application/json',
         },
-        paramsProvider: async () => ({
-          user_id: selfId,
-          user_info: { name: selfId },
-        }),
       },
     });
 

@@ -30,18 +30,18 @@ model PromptVersion {
 }
 
 model GenerateLog {
-  id            String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String?
-  contentType   String
+  contentType    String
   provider       String
   model          String
-  duration       Int      // milliseconds
+  duration       Int // milliseconds
   tokensUsed     Int?
   tokensInput    Int?
   tokensOutput   Int?
   success        Boolean
   errorMessage   String?
-  metadata       Json?    // Additional metadata (topic, focusKeyword, etc.)
+  metadata       Json? // Additional metadata (topic, focusKeyword, etc.)
   createdAt      DateTime @default(now())
 
   @@index([organizationId, createdAt])
@@ -49,30 +49,30 @@ model GenerateLog {
 }
 
 model LibraryContent {
-  id            String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String?
-  contentType   String
-  title         String
-  status        String   @default("draft") // draft, review, approved
-  tags          String[] @default([])
-  currentVersion Int     @default(1)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  contentType    String
+  title          String
+  status         String   @default("draft") // draft, review, approved
+  tags           String[] @default([])
+  currentVersion Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  versions      LibraryVersion[]
+  versions LibraryVersion[]
 
   @@index([organizationId, createdAt])
   @@index([contentType, createdAt])
 }
 
 model LibraryVersion {
-  id            String   @id @default(cuid())
+  id               String   @id @default(cuid())
   libraryContentId String
-  version       Int
-  data          Json
-  preview       String?
-  metadata      Json?    // model, provider, promptVersion, etc.
-  createdAt     DateTime @default(now())
+  version          Int
+  data             Json
+  preview          String?
+  metadata         Json? // model, provider, promptVersion, etc.
+  createdAt        DateTime @default(now())
 
   libraryContent LibraryContent @relation(fields: [libraryContentId], references: [id], onDelete: Cascade)
 
@@ -81,29 +81,136 @@ model LibraryVersion {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  name          String?
-  role          String   @default("user") // "user" or "admin"
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  name           String?
+  role           String    @default("user") // "user" or "admin"
   organizationId String? // Optioneel: voor toekomstige multi-tenant support
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lastLoginAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastLoginAt    DateTime?
 
   @@index([email])
   @@index([role])
 }
 
 model TenantUser {
-  id            String   @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
-  email         String
-  role          String   // viewer, editor, admin
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  email          String
+  role           String // viewer, editor, admin
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@unique([organizationId, email])
   @@index([organizationId, role])
 }
 
+model SocialPost {
+  id             String    @id @default(cuid())
+  organizationId String?
+  platform       String // instagram, linkedin, facebook, twitter
+  contentType    String // carousel, reel, single, story, linkedin_post
+  title          String?
+  content        Json // Post content (caption, slides, etc.)
+  imageUrl       String? // Main image URL
+  imageId        String? // Reference to UploadedImage
+  scheduledDate  DateTime? // Wanneer moet het gepubliceerd worden
+  publishedDate  DateTime? // Wanneer is het gepubliceerd
+  status         String    @default("draft") // draft, scheduled, published, cancelled, failed
+  hashtags       String[]  @default([])
+  metadata       Json? // Extra data (engagement, views, etc.)
+  createdBy      String? // User email
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Publishing fields
+  socialMediaAccountId String? // FK naar SocialMediaAccount
+  publishedPostId      String? // Platform post ID na publicatie
+  publishError         String? // Error message bij falen
+  publishAttempts      Int       @default(0)
+  lastPublishAttempt   DateTime?
+
+  image         UploadedImage?      @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  socialAccount SocialMediaAccount? @relation(fields: [socialMediaAccountId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, scheduledDate])
+  @@index([organizationId, status])
+  @@index([platform, scheduledDate])
+  @@index([status, scheduledDate])
+  @@index([imageId])
+  @@index([socialMediaAccountId])
+}
+
+model UploadedImage {
+  id             String   @id @default(cuid())
+  organizationId String?
+  filename       String
+  originalName   String
+  url            String // /uploads/...
+  mimeType       String
+  size           Int // bytes
+  width          Int?
+  height         Int?
+  alt            String? // Alt text voor SEO
+  tags           String[] @default([])
+  createdBy      String? // User email
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  socialPosts SocialPost[]
+
+  @@index([organizationId, createdAt])
+  @@index([createdAt])
+}
+
+model SocialPostTemplate {
+  id             String   @id @default(cuid())
+  organizationId String?
+  name           String
+  description    String?
+  platform       String // instagram, linkedin, facebook, twitter
+  contentType    String // carousel, reel, single, story, linkedin_post
+  content        Json // Template content structure
+  hashtags       String[] @default([])
+  isDefault      Boolean  @default(false)
+  createdBy      String? // User email
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, platform])
+  @@index([organizationId, isDefault])
+}
+
+// Social Media Account Connecties
+model SocialMediaAccount {
+  id             String  @id @default(cuid())
+  organizationId String? // Voor multi-tenant
+  userId         String // User die account heeft gekoppeld
+  platform       String // 'instagram' | 'linkedin'
+  accountType    String // 'business' | 'personal' | 'page'
+  accountId      String // Platform account ID (IG user ID, LinkedIn URN)
+  accountName    String // Display name
+  username       String? // Instagram username, LinkedIn handle
+
+  // OAuth tokens (encrypted)
+  accessToken    String    @db.Text // Encrypted
+  refreshToken   String?   @db.Text // Encrypted (LinkedIn)
+  tokenExpiresAt DateTime?
+
+  // Metadata
+  isActive  Boolean @default(true)
+  isDefault Boolean @default(false) // Default account voor platform
+  metadata  Json? // Extra platform-specifieke data
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  posts SocialPost[]
+
+  @@unique([organizationId, platform, accountId])
+  @@index([userId, platform])
+  @@index([platform, isActive])
+}

@@ -5,6 +5,7 @@ import { prisma } from '@/app/lib/prisma';
 import { decryptSecret } from '@/app/lib/crypto';
 import { validateByType } from '@/app/lib/schemas';
 import { sendWebhook } from '@/app/lib/webhook';
+import { rateLimiters } from '@/app/lib/rate-limit';
 
 // Logging interface
 interface GenerateLogData {
@@ -47,14 +48,30 @@ async function logGenerateCall(data: GenerateLogData): Promise<void> {
 
 const CONFIG_FILE = join(process.cwd(), 'config.json');
 
-// Laad custom prompts als ze bestaan
-async function loadCustomPrompts() {
+// Laad custom prompts als ze bestaan (per tenant of global)
+async function loadCustomPrompts(tenantId?: string) {
   try {
-    const record = await prisma.promptVersion.findFirst({
+    // Probeer eerst tenant-specifieke prompts
+    if (tenantId) {
+      const tenantRecord = await prisma.promptVersion.findFirst({
+        where: { tenantId },
+        orderBy: { version: 'desc' },
+      });
+      if (tenantRecord) {
+        console.log(`Loaded tenant-specific prompts for ${tenantId}`);
+        return tenantRecord.data as any;
+      }
+    }
+    
+    // Fallback naar global prompts
+    const globalRecord = await prisma.promptVersion.findFirst({
       where: { tenantId: 'global' },
       orderBy: { version: 'desc' },
     });
-    if (record) return record.data as any;
+    if (globalRecord) {
+      console.log('Loaded global prompts');
+      return globalRecord.data as any;
+    }
   } catch (e) {
     console.error('Fout bij laden prompts uit DB:', e);
   }
@@ -73,7 +90,7 @@ async function loadConfig() {
   if (process.env.OPENAI_API_KEY) {
     return {
       apiKey: process.env.OPENAI_API_KEY,
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: process.env.OPENAI_MODEL || 'gpt-5',
       provider: process.env.OPENAI_PROVIDER || 'openai',
     };
   }
@@ -90,7 +107,7 @@ async function loadConfig() {
     console.log('Config file niet gevonden of fout, gebruik lege fallback');
     return {
       apiKey: '',
-      model: 'gpt-4o-mini',
+      model: 'gpt-5',
       provider: 'openai',
     };
   }
@@ -1281,6 +1298,15 @@ Gebruik bij iedere post één van deze content types:
 Onderwerp: {{subject}}
 Regio's: Haarlem, {{region1}}, {{region2}} (alleen gebruiken in hashtags of als het logisch is; niet verplicht in de lopende tekst)
 
+{{#if imageContext}}
+BELANGRIJK - AFBEELDING CONTEXT:
+Er is een afbeelding geüpload voor deze post. Gebruik deze afbeelding als basis:
+- Beschrijf wat er op de afbeelding te zien is
+- Maak de post relevant voor de afbeelding
+- De caption moet logisch aansluiten bij wat er op de foto staat
+- Gebruik de afbeelding als inspiratie voor de content
+{{/if}}
+
 Geef de output uitsluitend als JSON in het volgende schema:
 {
   "topic": "string",
@@ -1360,7 +1386,9 @@ async function callAiWithRetry(
   prompt: string, 
   isImprovement = false, 
   maxRetries = 2,
-  retryDelay = 1000
+  retryDelay = 1000,
+  timeoutMs?: number,
+  fastMode: boolean = false
 ): Promise<string> {
   let lastError: Error | null = null;
   
@@ -1372,7 +1400,7 @@ async function callAiWithRetry(
         await new Promise(resolve => setTimeout(resolve, delay));
       }
       
-      return await callAi(prompt, isImprovement);
+      return await callAi(prompt, isImprovement, timeoutMs, fastMode);
     } catch (error: any) {
       lastError = error;
       console.error(`AI call attempt ${attempt + 1} failed:`, error.message);
@@ -1396,22 +1424,35 @@ async function callAiWithRetry(
 }
 
 // Generieke AI call functie - ondersteunt meerdere providers
-async function callAi(prompt: string, isImprovement = false): Promise<string> {
+async function callAi(prompt: string, isImprovement = false, timeoutMs?: number, fastMode: boolean = false): Promise<string> {
   console.log('Loading config...');
   // Laad configuratie (uit config.json of env vars)
   const config = await loadConfig();
-  console.log('Config loaded, provider:', config.provider, 'model:', config.model);
+  console.log('Config loaded, provider:', config.provider, 'model:', config.model, 'fastMode:', fastMode);
   
   const override = requestOverrides;
   const apiKey = override?.apiKey || config.apiKey || process.env.OPENAI_API_KEY;
-  const model = override?.model || config.model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  let model = override?.model || config.model || process.env.OPENAI_MODEL || 'gpt-5';
   const provider = override?.provider || config.provider || 'openai';
+  
+  // Auto-select sneller model in fast mode
+  if (fastMode) {
+    const fastModels: Record<string, string> = {
+      openai: 'gpt-4o-mini', // Veel sneller dan GPT-5
+      anthropic: 'claude-3-haiku-20240307', // Sneller dan Sonnet
+      google: 'gemini-pro', // Al snel
+    };
+    if (fastModels[provider]) {
+      console.log(`Fast mode: switching to faster model ${fastModels[provider]}`);
+      model = fastModels[provider];
+    }
+  }
   
   if (!apiKey) {
     throw new Error('API key is niet geconfigureerd. Ga naar Instellingen om een API key in te voeren.');
   }
   
-  console.log('Making AI call with provider:', provider);
+  console.log('Making AI call with provider:', provider, 'model:', model);
 
   try {
     const systemMessage = isImprovement
@@ -1420,11 +1461,11 @@ async function callAi(prompt: string, isImprovement = false): Promise<string> {
 
     // Ondersteuning voor verschillende providers
     if (provider === 'openai') {
-      return await callOpenAI(apiKey, model, systemMessage, prompt);
+      return await callOpenAI(apiKey, model, systemMessage, prompt, timeoutMs, fastMode);
     } else if (provider === 'anthropic') {
-      return await callAnthropic(apiKey, model, systemMessage, prompt);
+      return await callAnthropic(apiKey, model, systemMessage, prompt, fastMode);
     } else if (provider === 'google') {
-      return await callGoogle(apiKey, model, systemMessage, prompt);
+      return await callGoogle(apiKey, model, systemMessage, prompt, fastMode);
     } else {
       throw new Error(`Provider ${provider} wordt nog niet ondersteund. Gebruik: openai, anthropic of google.`);
     }
@@ -1437,10 +1478,14 @@ async function callAi(prompt: string, isImprovement = false): Promise<string> {
 }
 
 // OpenAI API call
-async function callOpenAI(apiKey: string, model: string, systemMessage: string, prompt: string): Promise<string> {
-  // Timeout controller voor fetch
+async function callOpenAI(apiKey: string, model: string, systemMessage: string, prompt: string, timeoutMs: number = 360000, fastMode: boolean = false): Promise<string> {
+  // Timeout controller voor fetch - default 6 minuten (blog content kan langer duren)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minuten timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  // Snelle modus optimalisaties
+  const temperature = fastMode ? 0.3 : 0.7; // Lagere temperature = sneller en meer deterministisch
+  const maxTokens = fastMode ? 4000 : undefined; // Limiteer output tokens voor snellere responses
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -1461,7 +1506,8 @@ async function callOpenAI(apiKey: string, model: string, systemMessage: string, 
             content: prompt,
           },
         ],
-        temperature: 0.7,
+        temperature,
+        ...(maxTokens && { max_tokens: maxTokens }),
         response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
@@ -1495,14 +1541,16 @@ async function callOpenAI(apiKey: string, model: string, systemMessage: string, 
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      throw new Error('API call timeout: De request duurde te lang (>2 minuten). Probeer het opnieuw.');
+      const timeoutMinutes = Math.round(timeoutMs / 60000);
+      throw new Error(`API call timeout: De request duurde te lang (>${timeoutMinutes} minuten). Dit kan gebeuren bij complexe content. Probeer het opnieuw of gebruik een sneller model.`);
     }
     throw error;
   }
 }
 
 // Anthropic (Claude) API call
-async function callAnthropic(apiKey: string, model: string, systemMessage: string, prompt: string): Promise<string> {
+async function callAnthropic(apiKey: string, model: string, systemMessage: string, prompt: string, fastMode: boolean = false): Promise<string> {
+  const maxTokens = fastMode ? 3000 : 4096; // Minder tokens = sneller
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -1512,7 +1560,7 @@ async function callAnthropic(apiKey: string, model: string, systemMessage: strin
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: maxTokens,
       system: systemMessage,
       messages: [
         {
@@ -1542,7 +1590,9 @@ async function callAnthropic(apiKey: string, model: string, systemMessage: strin
 }
 
 // Google (Gemini) API call
-async function callGoogle(apiKey: string, model: string, systemMessage: string, prompt: string): Promise<string> {
+async function callGoogle(apiKey: string, model: string, systemMessage: string, prompt: string, fastMode: boolean = false): Promise<string> {
+  const temperature = fastMode ? 0.3 : 0.7; // Lagere temperature = sneller
+  const maxOutputTokens = fastMode ? 3000 : undefined; // Limiteer output tokens
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
@@ -1555,7 +1605,8 @@ async function callGoogle(apiKey: string, model: string, systemMessage: string, 
         }]
       }],
       generationConfig: {
-        temperature: 0.7,
+        temperature,
+        ...(maxOutputTokens && { maxOutputTokens }),
         responseMimeType: 'application/json',
       },
     }),
@@ -2376,6 +2427,12 @@ function parseJsonResponse(text: string): any {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting voor content generatie
+  const rateLimitResponse = await rateLimiters.generate(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const startTime = Date.now();
   let logData: Partial<GenerateLogData> = {
     contentType: 'unknown',
@@ -2383,6 +2440,10 @@ export async function POST(request: NextRequest) {
     model: 'unknown',
     success: false,
   };
+  
+  // Store type and organizationId for error handling (declared outside try block)
+  let requestType: string | undefined;
+  let requestOrganizationId: string | undefined;
   
   try {
     let body;
@@ -2405,7 +2466,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { mode, type, content, apiKeyOverride, modelOverride, providerOverride, organizationId, language, ...fields } = body;
+    const { mode, type, content, apiKeyOverride, modelOverride, providerOverride, organizationId, language, selectedImageId, fastMode, ...fields } = body;
+    
+    // Store type and organizationId for error handling
+    requestType = type;
+    requestOrganizationId = typeof organizationId === 'string' ? organizationId.trim() : undefined;
     
     // Initialize log data
     logData = {
@@ -2433,7 +2498,7 @@ export async function POST(request: NextRequest) {
     
     // Update log data with actual provider/model
     logData.provider = requestOverrides.provider || 'openai';
-    logData.model = requestOverrides.model || 'gpt-4o-mini';
+    logData.model = requestOverrides.model || 'gpt-5';
     logData.organizationId = requestOverrides.organizationId;
 
     // Refine mode: verbeter bestaande content
@@ -2601,8 +2666,9 @@ export async function POST(request: NextRequest) {
       scenariosJson: JSON.stringify(scenarios),
     };
 
-    // Laad custom prompts als ze bestaan
-    const customPrompts = await loadCustomPrompts();
+    // Laad custom prompts als ze bestaan (per tenant of global)
+    const tenantIdForPrompts = requestOrganizationId || undefined;
+    const customPrompts = await loadCustomPrompts(tenantIdForPrompts);
     const baseInstruction = customPrompts?.base || BASE_INSTRUCTION;
     
     // Gebruik custom template als beschikbaar, anders default
@@ -2611,15 +2677,40 @@ export async function POST(request: NextRequest) {
       template = customPrompts[type];
     }
     
-    // Bouw prompt op met enriched fields (inclusief scenarios)
+    // Als er een imageId is, haal image metadata op en voeg toe aan prompt
+    let imageContext = '';
+    if (selectedImageId) {
+      try {
+        const image = await prisma.uploadedImage.findUnique({
+          where: { id: selectedImageId },
+          select: { originalName: true, alt: true, tags: true },
+        });
+        if (image) {
+          imageContext = `\n\nBELANGRIJK: Er is een afbeelding geüpload voor deze post:
+- Bestandsnaam: ${image.originalName}
+${image.alt ? `- Alt tekst: ${image.alt}` : ''}
+${image.tags && image.tags.length > 0 ? `- Tags: ${image.tags.join(', ')}` : ''}
+
+Gebruik deze afbeelding als basis voor je post. Beschrijf wat er op de afbeelding te zien is en maak de post relevant voor de afbeelding. De post moet logisch aansluiten bij wat er op de foto staat.`;
+        }
+      } catch (error) {
+        console.error('Error fetching image metadata:', error);
+      }
+    }
+
+    // Bouw prompt op met enriched fields (inclusief scenarios en image context)
     const filledTemplate = replacePlaceholders(template, { ...enrichedFields, language: language || 'nl' });
-    const fullPrompt = `${baseInstruction}\n\n${filledTemplate}`;
+    const fullPrompt = `${baseInstruction}\n\n${filledTemplate}${imageContext}`;
 
     // Eerste call: maak draft (met retry logica)
-    console.log('Starting main content generation...');
+    // Blog content heeft langere timeout nodig (6 minuten voor lange blogs)
+    const isBlog = type === 'blog';
+    const useFastMode = fastMode === true; // Snelle modus voor snellere generatie
+    const contentTimeout = isBlog ? 360000 : (useFastMode ? 120000 : 180000); // Sneller timeout in fast mode
+    console.log(`Starting main content generation... (timeout: ${contentTimeout/1000}s, fastMode: ${useFastMode})`);
     let draftResponse: string;
     try {
-      draftResponse = await callAiWithRetry(fullPrompt, false, 2, 2000);
+      draftResponse = await callAiWithRetry(fullPrompt, false, 2, 2000, contentTimeout, useFastMode);
     } catch (error: any) {
       console.error('Error in content generation after retries:', error);
       return NextResponse.json(
@@ -3051,13 +3142,30 @@ export async function POST(request: NextRequest) {
     if (process.env.WEBHOOK_URLS) {
       const urls = process.env.WEBHOOK_URLS.split(',').map((u) => u.trim()).filter(Boolean);
       sendWebhook(urls, 'generate.success', {
-        organizationId,
-        type,
+        organizationId: requestOrganizationId,
+        type: requestType,
         duration,
         tokensUsed: tokenUsage?.total,
         provider: logData.provider,
         model: logData.model,
       });
+    }
+    
+    // Add imageId to result if provided
+    if (selectedImageId) {
+      improvedJson.imageId = selectedImageId;
+      // Also fetch image URL if imageId is provided
+      try {
+        const image = await prisma.uploadedImage.findUnique({
+          where: { id: selectedImageId },
+          select: { url: true },
+        });
+        if (image) {
+          improvedJson.imageUrl = image.url;
+        }
+      } catch (error) {
+        console.error('Error fetching image:', error);
+      }
     }
     
     return NextResponse.json(improvedJson);
@@ -3078,8 +3186,8 @@ export async function POST(request: NextRequest) {
     if (process.env.WEBHOOK_URLS) {
       const urls = process.env.WEBHOOK_URLS.split(',').map((u) => u.trim()).filter(Boolean);
       sendWebhook(urls, 'generate.error', {
-        organizationId,
-        type,
+        organizationId: requestOrganizationId,
+        type: requestType,
         duration,
         provider: logData.provider,
         model: logData.model,

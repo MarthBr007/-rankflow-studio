@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ToastProvider } from './components/ToastContainer'
+import { ThemeProvider } from './lib/theme'
 
 export const metadata: Metadata = {
   title: 'RankFlow Studio – SEO Content Generator',
@@ -20,9 +21,11 @@ export default function RootLayout({
   return (
     <html lang="nl">
       <body>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

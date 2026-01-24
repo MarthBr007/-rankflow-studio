@@ -6,6 +6,8 @@ import Link from 'next/link';
 import Sidebar from '../components/Sidebar';
 import ContentResult from '../components/ContentResult';
 import { useToast } from '../components/ToastContainer';
+import UserIndicator from '../components/UserIndicator';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { 
   Trash2, 
   Eye, 
@@ -130,10 +132,11 @@ function LibraryContent() {
     try {
       const response = await fetch('/api/library');
       const data = await response.json();
-      setLibrary(data);
+      const items = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+      setLibrary(items);
       // Reset selection if existing item removed
       if (selectedItem) {
-        const stillExists = data.find((i: ContentItem) => i.id === selectedItem.id);
+        const stillExists = items.find((i: ContentItem) => i.id === selectedItem.id);
         if (!stillExists) {
           setSelectedItem(null);
         }
@@ -625,7 +628,7 @@ function LibraryContent() {
 
           <ContentResult
             type={selectedItem.type}
-            result={selectedItem.data}
+            editedResult={selectedItem.data}
             onRefine={async () => {}}
             isRefining={false}
           />
@@ -644,14 +647,11 @@ function LibraryContent() {
       />
       <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <div className="header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
-              <h1>Content Library</h1>
-              <p>Bekijk en beheer je opgeslagen content</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Breadcrumbs />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <UserIndicator />
             </div>
-            <Link href="/" className="button" style={{ textDecoration: 'none' }}>
-              ← Nieuw genereren
-            </Link>
           </div>
         </div>
 

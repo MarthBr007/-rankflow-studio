@@ -10,6 +10,10 @@ import { useToast } from './components/ToastContainer';
 import LoadingSpinner from './components/LoadingSpinner';
 import PresenceBar from './components/PresenceBar';
 import UserIndicator from './components/UserIndicator';
+import Breadcrumbs from './components/Breadcrumbs';
+import ThemeToggle from './components/ThemeToggle';
+import MobileMenuButton from './components/MobileMenuButton';
+import { useIsMobile } from './lib/useMediaQuery';
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -19,9 +23,11 @@ function HomeContent() {
   const [contentType, setContentType] = useState<string>('landing');
   const [error, setError] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
   const [tenantConfig, setTenantConfig] = useState<{ organizationId?: string; apiKey?: string; model?: string; provider?: string } | null>(null);
   const { showToast } = useToast();
+  const isMobile = useIsMobile();
 
   // Laad sidebar state uit localStorage
   useEffect(() => {
@@ -37,6 +43,25 @@ function HomeContent() {
     setIsSidebarCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
+
+  // Mobile menu toggle
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    if (isMobileMenuOpen && isMobile) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.sidebar') && !target.closest('.mobile-menu-button')) {
+          setIsMobileMenuOpen(false);
+        }
+      };
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen, isMobile]);
 
   // Lees type uit URL bij mount
   useEffect(() => {
@@ -59,6 +84,61 @@ function HomeContent() {
     }
   }, []);
 
+  // Laad beschikbare tenants voor selector
+  const [availableTenants, setAvailableTenants] = useState<Array<{ tenantId: string; providers: Array<{ provider: string; model: string }> }>>([]);
+  const [isLoadingTenants, setIsLoadingTenants] = useState(false);
+
+  useEffect(() => {
+    const loadTenants = async () => {
+      setIsLoadingTenants(true);
+      try {
+        const res = await fetch('/api/tenant-config?list=true');
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableTenants(data.tenants || []);
+        }
+      } catch (e) {
+        console.error('Fout bij laden tenants:', e);
+      } finally {
+        setIsLoadingTenants(false);
+      }
+    };
+    loadTenants();
+  }, []);
+
+  const handleTenantChange = async (tenantId: string) => {
+    if (!tenantId || tenantId === 'none') {
+      localStorage.removeItem('rankflow-tenant-config');
+      setTenantConfig(null);
+      return;
+    }
+
+    // Laad de eerste provider configuratie van deze tenant
+    const tenant = availableTenants.find(t => t.tenantId === tenantId);
+    if (tenant && tenant.providers.length > 0) {
+      const firstProvider = tenant.providers[0];
+      try {
+        const res = await fetch(`/api/tenant-config?tenantId=${tenantId}&provider=${firstProvider.provider}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.exists) {
+            const config = {
+              organizationId: data.tenantId,
+              model: data.model,
+              provider: data.provider,
+            };
+            localStorage.setItem('rankflow-tenant-config', JSON.stringify(config));
+            setTenantConfig(config);
+            showToast(`Tenant "${tenantId}" geselecteerd`, 'success');
+          }
+        }
+      } catch (e) {
+        console.error('Fout bij laden tenant config:', e);
+        showToast('Fout bij laden tenant configuratie', 'error');
+      }
+    }
+  };
+
   const handleTypeChange = (type: string) => {
     setContentType(type);
     setResult(null);
@@ -73,8 +153,11 @@ function HomeContent() {
     setResult(null);
     setContentType(formData.type);
 
-    const notifySlack = async (status: 'success' | 'error', message: string) => {
+    const notifySlack = async (status: 'success' | 'error', message: string, contentData?: any) => {
       try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+        const resultUrl = contentData ? `${appUrl}/result?type=${formData.type}` : undefined;
+
         const res = await fetch('/api/notify/slack', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -87,7 +170,9 @@ function HomeContent() {
               category: formData.category,
               topic: formData.topic,
               subject: formData.subject,
+              resultUrl,
             },
+            content: contentData, // Volledige content data
           }),
         });
         if (!res.ok) {
@@ -146,8 +231,8 @@ function HomeContent() {
         sessionStorage.setItem('contentType', formData.type);
       }
 
-      // Slack: succesvolle generatie
-      await notifySlack('success', 'Nieuwe content gegenereerd');
+      // Slack: succesvolle generatie met volledige content
+      await notifySlack('success', 'Nieuwe content gegenereerd', data);
       router.push(`/result?type=${formData.type}`);
     } catch (err: any) {
       let errorMessage = 'Er is een fout opgetreden bij het genereren van content';
@@ -178,33 +263,68 @@ function HomeContent() {
   }, [searchParams]);
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isMobileMenuOpen && isMobile ? 'mobile-sidebar-open' : ''}`}>
+      {isMobile && isMobileMenuOpen && (
+        <div 
+          className="sidebar-overlay active"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
       <Sidebar 
         activeType={showDashboard ? 'dashboard' : contentType} 
         onTypeChange={handleTypeChange}
-        isCollapsed={isSidebarCollapsed}
+        isCollapsed={isMobile ? false : isSidebarCollapsed}
         onToggleCollapse={toggleSidebar}
+        className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
       />
-      <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
         {showDashboard ? (
           <DashboardView onStartGenerating={() => setShowDashboard(false)} />
         ) : (
           <>
             <div className="header">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h1>RankFlow Studio</h1>
-                  <p>Genereer SEO-geoptimaliseerde content voor je verhuurbedrijf</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {isMobile && (
+                    <MobileMenuButton 
+                      isOpen={isMobileMenuOpen} 
+                      onClick={toggleMobileMenu} 
+                    />
+                  )}
+                  <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+                    <Breadcrumbs />
+                  </Suspense>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  {/* Tenant Selector */}
+                  {availableTenants.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <label htmlFor="tenant-select" style={{ fontSize: '0.875rem', color: '#666' }}>
+                        Tenant:
+                      </label>
+                      <select
+                        id="tenant-select"
+                        value={tenantConfig?.organizationId || 'none'}
+                        onChange={(e) => handleTenantChange(e.target.value)}
+                        style={{
+                          padding: '0.5rem',
+                          borderRadius: '4px',
+                          border: '1px solid #ddd',
+                          fontSize: '0.875rem',
+                          backgroundColor: 'white',
+                        }}
+                      >
+                        <option value="none">Standaard (geen tenant)</option>
+                        {availableTenants.map((tenant) => (
+                          <option key={tenant.tenantId} value={tenant.tenantId}>
+                            {tenant.tenantId} ({tenant.providers.map(p => `${p.provider}/${p.model}`).join(', ')})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <ThemeToggle />
                   <UserIndicator />
-                  <button 
-                    onClick={() => setShowDashboard(true)}
-                    className="button" 
-                    style={{ backgroundColor: '#6c757d' }}
-                  >
-                    ← Dashboard
-                  </button>
                 </div>
               </div>
             </div>
@@ -217,7 +337,12 @@ function HomeContent() {
               </div>
             )}
 
-            <ContentForm onSubmit={handleSubmit} isLoading={isLoading} defaultType={contentType as any} />
+            <ContentForm 
+              onSubmit={handleSubmit} 
+              isLoading={isLoading} 
+              defaultType={contentType as any}
+              organizationId={tenantConfig?.organizationId || null}
+            />
 
             {isLoading && (
               <div className="loading-overlay">

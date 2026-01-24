@@ -1,0 +1,21 @@
+# Vercel ignore file
+# Files/directories to exclude from deployment
+
+# Development files
+.env*.local
+*.log
+.DS_Store
+
+# Test files
+e2e/
+playwright.config.ts
+
+# Documentation (optional - kan ook blijven)
+*.md
+!README.md
+
+# Scripts (optional)
+scripts/
+
+# Uploads (gebruik externe storage in productie)
+public/uploads/

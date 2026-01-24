@@ -6,23 +6,28 @@ const CONFIG_FILE = join(process.cwd(), 'config.json');
 
 // Laad configuratie
 async function loadConfig() {
-  // Prefer environment variables (voor Vercel / productie)
-  if (process.env.OPENAI_API_KEY) {
-    return {
-      apiKey: process.env.OPENAI_API_KEY,
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      provider: process.env.OPENAI_PROVIDER || 'openai',
-    };
-  }
-
+  // Probeer eerst config.json te laden
   try {
     const data = await readFile(CONFIG_FILE, 'utf-8');
-    return JSON.parse(data);
+    const config = JSON.parse(data);
+    // Gebruik environment variables alleen als fallback voor API key (als config.json geen key heeft)
+    if (!config.apiKey && process.env.OPENAI_API_KEY) {
+      config.apiKey = process.env.OPENAI_API_KEY;
+    }
+    return config;
   } catch (error) {
-    // Als bestand niet bestaat, return default config
+    // Als bestand niet bestaat, gebruik environment variables of defaults
+    if (process.env.OPENAI_API_KEY) {
+      return {
+        apiKey: process.env.OPENAI_API_KEY,
+        model: process.env.OPENAI_MODEL || 'gpt-5',
+        provider: process.env.OPENAI_PROVIDER || 'openai',
+      };
+    }
+    // Default config
     return {
       apiKey: '',
-      model: 'gpt-4o-mini',
+      model: 'gpt-5',
       provider: 'openai',
     };
   }
@@ -72,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     // Valideer model op basis van provider
     const validModels: Record<string, string[]> = {
-      openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+      openai: ['gpt-5', 'gpt-5-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
       anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
       google: ['gemini-pro', 'gemini-pro-vision'],
     };
@@ -90,14 +95,22 @@ export async function POST(request: NextRequest) {
     // Update config (behoud apiKey als deze leeg is of niet wordt meegegeven)
     const updatedConfig = {
       ...existingConfig,
-      model,
-      provider,
+      model: model.trim(),
+      provider: provider.trim(),
       // Update API key alleen als deze wordt meegegeven EN niet leeg is
-      apiKey: (apiKey !== undefined && apiKey.trim() !== '') ? apiKey : existingConfig.apiKey,
+      apiKey: (apiKey !== undefined && apiKey.trim() !== '') ? apiKey.trim() : existingConfig.apiKey,
     };
 
+    console.log('Saving config to file:', { model: updatedConfig.model, provider: updatedConfig.provider, hasApiKey: !!updatedConfig.apiKey });
+
     // Sla op (alleen lokaal; in Vercel raden we env vars aan)
-    await writeFile(CONFIG_FILE, JSON.stringify(updatedConfig, null, 2), 'utf-8');
+    try {
+      await writeFile(CONFIG_FILE, JSON.stringify(updatedConfig, null, 2), 'utf-8');
+      console.log('Config file written successfully');
+    } catch (writeError: any) {
+      console.error('Error writing config file:', writeError);
+      throw new Error(`Fout bij schrijven config bestand: ${writeError.message}`);
+    }
 
     return NextResponse.json({ 
       success: true,

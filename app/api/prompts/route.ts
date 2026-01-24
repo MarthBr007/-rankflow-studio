@@ -1084,15 +1084,29 @@ export async function GET(request: NextRequest) {
       : await loadLatestPrompts(tenantId);
 
     if (record) {
+      // Handle both types: PromptVersion from findUnique or { prompts, version } from loadLatestPrompts
+      let promptsData: any;
+      let version: number;
+      
+      if ('prompts' in record) {
+        // Return value from loadLatestPrompts
+        promptsData = record.prompts;
+        version = record.version;
+      } else {
+        // PromptVersion from findUnique
+        promptsData = record.data as any;
+        version = record.version;
+      }
+      
       const prompts = {
-        base: record.prompts?.base || defaults.base,
-        landing: record.prompts?.landing || defaults.landing,
-        categorie: record.prompts?.categorie || defaults.categorie,
-        product: record.prompts?.product || defaults.product,
-        blog: record.prompts?.blog || defaults.blog,
-        social: record.prompts?.social || defaults.social,
+        base: promptsData?.base || defaults.base,
+        landing: promptsData?.landing || defaults.landing,
+        categorie: promptsData?.categorie || defaults.categorie,
+        product: promptsData?.product || defaults.product,
+        blog: promptsData?.blog || defaults.blog,
+        social: promptsData?.social || defaults.social,
       };
-      return NextResponse.json({ prompts, defaults, version: record.version, exists: true });
+      return NextResponse.json({ prompts, defaults, version, exists: true });
     }
 
     return NextResponse.json({ defaults, version: 0, exists: false });
