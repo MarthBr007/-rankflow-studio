@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import Sidebar from '../components/Sidebar';
+import UserIndicator from '../components/UserIndicator';
+import Breadcrumbs from '../components/Breadcrumbs';
 
 interface LogItem {
   id: string;
@@ -86,8 +88,14 @@ export default function AnalyticsPage() {
       />
       <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <div className="header">
-          <h1>Analytics & Logs</h1>
-          <p>Overzicht van generate-calls (tenant, provider, model, duur, tokens).</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+              <Breadcrumbs />
+            </Suspense>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <UserIndicator />
+            </div>
+          </div>
         </div>
 
         <div className="settings-container" style={{ gap: '1.5rem' }}>

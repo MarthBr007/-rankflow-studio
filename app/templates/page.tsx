@@ -1,8 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import Sidebar from '../components/Sidebar';
 import CopyButton from '../components/CopyButton';
+import UserIndicator from '../components/UserIndicator';
+import Breadcrumbs from '../components/Breadcrumbs';
+import { 
+  FileText, 
+  Download, 
+  ChevronDown, 
+  ChevronUp, 
+  Search, 
+  Filter,
+  LayoutTemplate,
+  FileCode,
+  Sparkles,
+  Eye,
+  EyeOff
+} from 'lucide-react';
 
 type Template = {
   id: string;
@@ -132,7 +147,11 @@ function downloadJson(data: any, filename: string) {
 }
 
 export default function TemplatesPage() {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set());
+  const [showPreviews, setShowPreviews] = useState<Set<string>>(new Set());
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
@@ -147,6 +166,297 @@ export default function TemplatesPage() {
     if (saved !== null) setIsSidebarCollapsed(JSON.parse(saved));
   }, []);
 
+  const filteredTemplates = useMemo(() => {
+    return templates.filter(tpl => {
+      const matchesSearch = 
+        tpl.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tpl.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tpl.type.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesType = typeFilter === 'all' || tpl.type === typeFilter;
+      
+      return matchesSearch && matchesType;
+    });
+  }, [searchQuery, typeFilter]);
+
+  const toggleExpand = (templateId: string) => {
+    setExpandedTemplates(prev => {
+      const next = new Set(prev);
+      if (next.has(templateId)) {
+        next.delete(templateId);
+      } else {
+        next.add(templateId);
+      }
+      return next;
+    });
+  };
+
+  const togglePreview = (templateId: string) => {
+    setShowPreviews(prev => {
+      const next = new Set(prev);
+      if (next.has(templateId)) {
+        next.delete(templateId);
+      } else {
+        next.add(templateId);
+      }
+      return next;
+    });
+  };
+
+  const renderTemplatePreview = (tpl: Template) => {
+    const data = tpl.data;
+    const showPreview = showPreviews.has(tpl.id);
+
+    if (!showPreview) return null;
+
+    if (tpl.type === 'landing') {
+      const content = data.content || data;
+      const seo = data.seo || data;
+      return (
+        <div style={{
+          padding: '1.5rem',
+          backgroundColor: '#fff',
+          borderTop: '1px solid #e5e7eb',
+          maxHeight: '600px',
+          overflow: 'auto'
+        }}>
+          <div style={{ 
+            maxWidth: '800px', 
+            margin: '0 auto',
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '2rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: '#111827' }}>
+              {content.h1 || seo.seoTitle || 'Landingspagina Titel'}
+            </h1>
+            {content.intro && (
+              <p style={{ fontSize: '1.125rem', color: '#6b7280', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                {content.intro}
+              </p>
+            )}
+            {content.benefits && content.benefits.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                  {content.benefitsTitle || 'Voordelen'}
+                </h2>
+                <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {content.benefits.map((benefit: string, index: number) => (
+                    <li key={index} style={{ fontSize: '0.9375rem', color: '#374151' }}>
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {data.faq && data.faq.items && data.faq.items.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                  {data.faq.faqTitle || 'Veelgestelde vragen'}
+                </h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {data.faq.items.slice(0, 2).map((item: any, index: number) => (
+                    <div key={index} style={{ padding: '0.75rem', background: '#f9fafb', borderRadius: '6px' }}>
+                      <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem', color: '#111827' }}>
+                        {item.question}
+                      </h3>
+                      <p style={{ fontSize: '0.9375rem', color: '#374151', margin: 0 }}>
+                        {item.answer}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {data.cta && data.cta.ctaText && (
+              <div style={{ 
+                padding: '1.5rem', 
+                background: 'linear-gradient(135deg, #005BBB 0%, #0A6BE5 100%)', 
+                borderRadius: '8px',
+                textAlign: 'center',
+                color: '#fff'
+              }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                  {data.cta.ctaTitle || 'Call to Action'}
+                </h3>
+                <p style={{ fontSize: '1rem', margin: 0, opacity: 0.95 }}>
+                  {data.cta.ctaText}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (tpl.type === 'blog') {
+      return (
+        <div style={{
+          padding: '1.5rem',
+          backgroundColor: '#fff',
+          borderTop: '1px solid #e5e7eb',
+          maxHeight: '600px',
+          overflow: 'auto'
+        }}>
+          <div style={{ 
+            maxWidth: '800px', 
+            margin: '0 auto',
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '2rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: '#111827' }}>
+              {data.h1 || data.seoTitle || 'Blog Titel'}
+            </h1>
+            {data.intro && (
+              <p style={{ fontSize: '1.125rem', color: '#6b7280', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                {data.intro}
+              </p>
+            )}
+            {data.sections && data.sections.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {data.sections.slice(0, 2).map((section: any, index: number) => (
+                  <div key={index}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                      {section.title}
+                    </h2>
+                    <p style={{ fontSize: '0.9375rem', color: '#374151', lineHeight: 1.6 }}>
+                      {section.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {data.steps && data.steps.length > 0 && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                  {data.stepsTitle || 'Stappenplan'}
+                </h2>
+                <ol style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {data.steps.slice(0, 3).map((step: string, index: number) => (
+                    <li key={index} style={{ fontSize: '0.9375rem', color: '#374151' }}>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (tpl.type === 'product') {
+      return (
+        <div style={{
+          padding: '1.5rem',
+          backgroundColor: '#fff',
+          borderTop: '1px solid #e5e7eb',
+          maxHeight: '600px',
+          overflow: 'auto'
+        }}>
+          <div style={{ 
+            maxWidth: '800px', 
+            margin: '0 auto',
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '12px',
+            padding: '2rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', color: '#111827' }}>
+              {data.title || data.seoTitle || 'Product Titel'}
+            </h1>
+            {data.intro && (
+              <p style={{ fontSize: '1.125rem', color: '#6b7280', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                {data.intro}
+              </p>
+            )}
+            {data.benefits && data.benefits.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                  {data.benefitsTitle || 'Voordelen'}
+                </h2>
+                <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {data.benefits.map((benefit: string, index: number) => (
+                    <li key={index} style={{ fontSize: '0.9375rem', color: '#374151' }}>
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {data.idealFor && data.idealFor.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.75rem', color: '#111827' }}>
+                  {data.idealTitle || 'Ideaal voor'}
+                </h2>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {data.idealFor.map((item: string, index: number) => (
+                    <span key={index} style={{ 
+                      padding: '0.5rem 1rem', 
+                      background: '#f0f8ff', 
+                      borderRadius: '6px',
+                      fontSize: '0.875rem',
+                      color: '#005BBB',
+                      fontWeight: 500
+                    }}>
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {data.ctaText && (
+              <div style={{ 
+                padding: '1.5rem', 
+                background: 'linear-gradient(135deg, #005BBB 0%, #0A6BE5 100%)', 
+                borderRadius: '8px',
+                textAlign: 'center',
+                color: '#fff'
+              }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                  {data.ctaTitle || 'Call to Action'}
+                </h3>
+                <p style={{ fontSize: '1rem', margin: 0, opacity: 0.95 }}>
+                  {data.ctaText}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const getTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      landing: '#3b82f6',
+      product: '#10b981',
+      categorie: '#f59e0b',
+      blog: '#8b5cf6',
+      social: '#ec4899',
+    };
+    return colors[type] || '#6b7280';
+  };
+
+  const getTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      landing: 'Landingspagina',
+      product: 'Product',
+      categorie: 'Categorie',
+      blog: 'Blog',
+      social: 'Social Media',
+    };
+    return labels[type] || type;
+  };
+
   return (
     <div className="app-layout">
       <Sidebar
@@ -157,37 +467,349 @@ export default function TemplatesPage() {
       />
       <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <div className="header">
-          <h1>Templates Library</h1>
-          <p>Vooraf gedefinieerde contenttemplates per type. Kopieer of download JSON.</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+              <Breadcrumbs />
+            </Suspense>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <UserIndicator />
+            </div>
+          </div>
         </div>
 
-        <div className="settings-container" style={{ gap: '1.5rem' }}>
-          {templates.map((tpl) => (
-            <div key={tpl.id} className="prompt-viewer">
-              <div className="prompt-header">
-                <div>
-                  <h2>{tpl.name}</h2>
-                  <p style={{ color: '#666', marginTop: '0.2rem' }}>
-                    {tpl.description} • Type: {tpl.type}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <CopyButton text={JSON.stringify(tpl.data, null, 2)} />
-                  <button
-                    className="button"
-                    onClick={() => downloadJson(tpl.data, `${tpl.id}.json`)}
-                  >
-                    Download JSON
-                  </button>
-                </div>
-              </div>
-              <div className="prompt-content" style={{ maxHeight: '420px', overflow: 'auto' }}>
-                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontSize: '0.92rem' }}>
-                  {JSON.stringify(tpl.data, null, 2)}
-                </pre>
-              </div>
+        <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Page Header */}
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <LayoutTemplate size={28} style={{ color: 'var(--color-primary)' }} />
+              <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+                Templates Library
+              </h1>
             </div>
-          ))}
+            <p style={{ color: '#6b7280', fontSize: '1rem', margin: 0 }}>
+              Vooraf gedefinieerde contenttemplates per type. Kopieer of download JSON voor gebruik in je content generator.
+            </p>
+          </div>
+
+          {/* Search and Filter Bar */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '1rem', 
+            marginBottom: '2rem',
+            flexWrap: 'wrap',
+            alignItems: 'center'
+          }}>
+            <div style={{ position: 'relative', flex: '1', minWidth: '250px' }}>
+              <Search size={18} style={{ 
+                position: 'absolute', 
+                left: '0.875rem', 
+                top: '50%', 
+                transform: 'translateY(-50%)',
+                color: '#9ca3af'
+              }} />
+              <input
+                type="text"
+                placeholder="Zoek templates..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 0.75rem 0.75rem 2.75rem',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '0.9375rem',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--color-primary)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 91, 187, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Filter size={18} style={{ color: '#6b7280' }} />
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '0.9375rem',
+                  backgroundColor: 'white',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--color-primary)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 91, 187, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                <option value="all">Alle types</option>
+                <option value="landing">Landingspagina</option>
+                <option value="product">Product</option>
+                <option value="categorie">Categorie</option>
+                <option value="blog">Blog</option>
+                <option value="social">Social Media</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Results Count */}
+          {filteredTemplates.length > 0 && (
+            <div style={{ 
+              marginBottom: '1.5rem', 
+              color: '#6b7280', 
+              fontSize: '0.875rem' 
+            }}>
+              {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} gevonden
+            </div>
+          )}
+
+          {/* Templates Grid */}
+          {filteredTemplates.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '4rem 2rem',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <FileText size={48} style={{ color: '#d1d5db', marginBottom: '1rem' }} />
+              <h3 style={{ color: '#374151', marginBottom: '0.5rem' }}>Geen templates gevonden</h3>
+              <p style={{ color: '#6b7280' }}>
+                Probeer een andere zoekterm of filter.
+              </p>
+            </div>
+          ) : (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))',
+              gap: '1.5rem'
+            }}>
+              {filteredTemplates.map((tpl) => {
+                const isExpanded = expandedTemplates.has(tpl.id);
+                const typeColor = getTypeColor(tpl.type);
+                
+                return (
+                  <div 
+                    key={tpl.id} 
+                    style={{
+                      backgroundColor: 'white',
+                      borderRadius: '12px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                      overflow: 'hidden',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    {/* Card Header */}
+                    <div style={{
+                      padding: '1.5rem',
+                      borderBottom: '1px solid #e5e7eb',
+                      backgroundColor: '#fafafa'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.75rem' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '0.25rem 0.625rem',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              backgroundColor: `${typeColor}15`,
+                              color: typeColor,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em'
+                            }}>
+                              {getTypeLabel(tpl.type)}
+                            </span>
+                          </div>
+                          <h3 style={{ 
+                            fontSize: '1.125rem', 
+                            fontWeight: 600, 
+                            color: '#111827',
+                            margin: 0,
+                            marginBottom: '0.25rem'
+                          }}>
+                            {tpl.name}
+                          </h3>
+                          <p style={{ 
+                            color: '#6b7280', 
+                            fontSize: '0.875rem',
+                            margin: 0,
+                            lineHeight: 1.5
+                          }}>
+                            {tpl.description}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <CopyButton text={JSON.stringify(tpl.data, null, 2)} />
+                        <button
+                          onClick={() => downloadJson(tpl.data, `${tpl.id}.json`)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            backgroundColor: 'white',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: '#374151',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f9fafb';
+                            e.currentTarget.style.borderColor = '#d1d5db';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'white';
+                            e.currentTarget.style.borderColor = '#e5e7eb';
+                          }}
+                        >
+                          <Download size={16} />
+                          Download JSON
+                        </button>
+                        <button
+                          onClick={() => togglePreview(tpl.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            backgroundColor: showPreviews.has(tpl.id) ? '#f0f8ff' : 'white',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: showPreviews.has(tpl.id) ? '#005BBB' : '#374151',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f0f8ff';
+                            e.currentTarget.style.borderColor = '#005BBB';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = showPreviews.has(tpl.id) ? '#f0f8ff' : 'white';
+                            e.currentTarget.style.borderColor = '#e5e7eb';
+                          }}
+                        >
+                          {showPreviews.has(tpl.id) ? (
+                            <>
+                              <EyeOff size={16} />
+                              Verberg Preview
+                            </>
+                          ) : (
+                            <>
+                              <Eye size={16} />
+                              Toon Preview
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => toggleExpand(tpl.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            backgroundColor: 'white',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: '#374151',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f9fafb';
+                            e.currentTarget.style.borderColor = '#d1d5db';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'white';
+                            e.currentTarget.style.borderColor = '#e5e7eb';
+                          }}
+                        >
+                          <FileCode size={16} />
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp size={16} />
+                              Verberg JSON
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown size={16} />
+                              Toon JSON
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Content Preview */}
+                    {renderTemplatePreview(tpl)}
+
+                    {/* JSON Preview (Collapsible) */}
+                    {isExpanded && (
+                      <div style={{
+                        padding: '1.5rem',
+                        backgroundColor: '#f9fafb',
+                        borderTop: '1px solid #e5e7eb',
+                        maxHeight: '500px',
+                        overflow: 'auto'
+                      }}>
+                        <pre style={{
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          margin: 0,
+                          fontSize: '0.8125rem',
+                          lineHeight: 1.6,
+                          color: '#374151',
+                          fontFamily: 'Monaco, "Courier New", monospace',
+                          backgroundColor: 'white',
+                          padding: '1rem',
+                          borderRadius: '6px',
+                          border: '1px solid #e5e7eb'
+                        }}>
+                          {JSON.stringify(tpl.data, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
