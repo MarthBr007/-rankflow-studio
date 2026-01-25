@@ -340,9 +340,9 @@ export default function DashboardView({ onStartGenerating }: DashboardViewProps)
         <div className="dashboard-section">
           <h2>Recente Content</h2>
           {isLoadingRecent ? (
-            <p style={{ color: '#666', padding: '1rem' }}>Laden...</p>
+            <p style={{ color: 'var(--color-text-muted)', padding: '1rem' }}>Laden...</p>
           ) : recentItems.length === 0 ? (
-            <p style={{ color: '#666', padding: '1rem' }}>Nog geen opgeslagen content. Start met genereren!</p>
+            <p style={{ color: 'var(--color-text-muted)', padding: '1rem' }}>Nog geen opgeslagen content. Start met genereren!</p>
           ) : (
             <div className="recent-items-list">
               {recentItems.map((item) => {
