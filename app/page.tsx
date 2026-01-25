@@ -278,56 +278,59 @@ function HomeContent() {
         className={isMobile && isMobileMenuOpen ? 'mobile-open' : ''}
       />
       <div className={`main-content ${isSidebarCollapsed && !isMobile ? 'sidebar-collapsed' : ''}`}>
+        {/* Header - altijd zichtbaar */}
+        <div className="header">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {isMobile && (
+                <MobileMenuButton 
+                  isOpen={isMobileMenuOpen} 
+                  onClick={toggleMobileMenu} 
+                />
+              )}
+              <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
+                <Breadcrumbs />
+              </Suspense>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* Tenant Selector - alleen bij content form */}
+              {!showDashboard && availableTenants.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label htmlFor="tenant-select" style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+                    Tenant:
+                  </label>
+                  <select
+                    id="tenant-select"
+                    value={tenantConfig?.organizationId || 'none'}
+                    onChange={(e) => handleTenantChange(e.target.value)}
+                    style={{
+                      padding: '0.5rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--color-border)',
+                      fontSize: '0.875rem',
+                      backgroundColor: 'var(--color-bg-panel)',
+                      color: 'var(--color-text)',
+                    }}
+                  >
+                    <option value="none">Standaard (geen tenant)</option>
+                    {availableTenants.map((tenant) => (
+                      <option key={tenant.tenantId} value={tenant.tenantId}>
+                        {tenant.tenantId} ({tenant.providers.map(p => `${p.provider}/${p.model}`).join(', ')})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <ThemeToggle />
+              <UserIndicator />
+            </div>
+          </div>
+        </div>
+
         {showDashboard ? (
           <DashboardView onStartGenerating={() => setShowDashboard(false)} />
         ) : (
           <>
-            <div className="header">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {isMobile && (
-                    <MobileMenuButton 
-                      isOpen={isMobileMenuOpen} 
-                      onClick={toggleMobileMenu} 
-                    />
-                  )}
-                  <Suspense fallback={<div style={{ minHeight: '24px' }} />}>
-                    <Breadcrumbs />
-                  </Suspense>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  {/* Tenant Selector */}
-                  {availableTenants.length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <label htmlFor="tenant-select" style={{ fontSize: '0.875rem', color: '#666' }}>
-                        Tenant:
-                      </label>
-                      <select
-                        id="tenant-select"
-                        value={tenantConfig?.organizationId || 'none'}
-                        onChange={(e) => handleTenantChange(e.target.value)}
-                        style={{
-                          padding: '0.5rem',
-                          borderRadius: '4px',
-                          border: '1px solid #ddd',
-                          fontSize: '0.875rem',
-                          backgroundColor: 'white',
-                        }}
-                      >
-                        <option value="none">Standaard (geen tenant)</option>
-                        {availableTenants.map((tenant) => (
-                          <option key={tenant.tenantId} value={tenant.tenantId}>
-                            {tenant.tenantId} ({tenant.providers.map(p => `${p.provider}/${p.model}`).join(', ')})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <ThemeToggle />
-                  <UserIndicator />
-                </div>
-              </div>
-            </div>
 
             <PresenceBar />
 
