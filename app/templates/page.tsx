@@ -421,10 +421,10 @@ export default function TemplatesPage() {
                   {data.idealFor.map((item: string, index: number) => (
                     <span key={index} style={{ 
                       padding: '0.5rem 1rem', 
-                      background: '#f0f8ff', 
-                      borderRadius: '6px',
+                      background: 'var(--color-info-bg)', 
+                      borderRadius: 'var(--radius-sm)',
                       fontSize: '0.875rem',
-                      color: '#005BBB',
+                      color: 'var(--color-primary)',
                       fontWeight: 500
                     }}>
                       {item}

@@ -1212,17 +1212,12 @@ function PlannerContent() {
               gap: isMobile ? '1rem' : '1.5rem'
             }}>
               {posts.length === 0 ? (
-                <div style={{
+                <div className="empty-state" style={{
                   gridColumn: '1 / -1',
-                  textAlign: 'center',
-                  padding: '3rem',
-                  background: '#fff',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb'
                 }}>
-                  <Calendar size={48} style={{ margin: '0 auto 1rem', color: '#999' }} />
+                  <Calendar size={80} style={{ margin: '0 auto 1rem', color: 'var(--color-text-muted)', opacity: 0.5 }} />
                   <h3>Geen posts gevonden</h3>
-                  <p style={{ color: '#666', marginTop: '0.5rem' }}>
+                  <p style={{ color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
                     Maak je eerste social media post aan
                   </p>
                   <button
@@ -1247,11 +1242,11 @@ function PlannerContent() {
                     }}
                     style={{
                       cursor: 'pointer',
-                      background: '#fff',
-                      borderRadius: '8px',
-                      border: selectedPostIds.has(post.id) ? '3px solid #007bff' : '1px solid #e5e7eb',
+                      background: 'var(--color-bg-panel)',
+                      borderRadius: 'var(--radius-md)',
+                      border: selectedPostIds.has(post.id) ? `3px solid var(--color-primary)` : `1px solid var(--color-border)`,
                       overflow: 'hidden',
-                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      transition: 'transform var(--transition-base), box-shadow var(--transition-base)',
                       position: 'relative'
                     }}
                     onMouseEnter={(e) => {

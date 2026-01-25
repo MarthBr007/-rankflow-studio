@@ -99,13 +99,13 @@ export default function ImageUploader({
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         style={{
-          border: `2px dashed ${dragActive ? '#007bff' : '#ddd'}`,
-          borderRadius: '8px',
-          padding: '2rem',
+          border: `2px dashed ${dragActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--spacing-xl)',
           textAlign: 'center',
           cursor: isUploading ? 'not-allowed' : 'pointer',
-          background: dragActive ? '#f0f8ff' : '#fafafa',
-          transition: 'all 0.2s',
+          background: dragActive ? 'var(--color-info-bg)' : 'var(--color-bg-light)',
+          transition: 'all var(--transition-base)',
           opacity: isUploading ? 0.6 : 1,
         }}
       >
@@ -139,10 +139,10 @@ export default function ImageUploader({
         <div style={{
           marginTop: '0.5rem',
           padding: '0.75rem',
-          background: '#fee',
-          border: '1px solid #fcc',
-          borderRadius: '4px',
-          color: '#c33',
+          background: 'var(--color-error-bg)',
+          border: '1px solid var(--color-error)',
+          borderRadius: 'var(--radius-sm)',
+          color: 'var(--color-error)',
           fontSize: '0.875rem',
           display: 'flex',
           alignItems: 'center',
