@@ -597,6 +597,67 @@ p {
     overflow-x: hidden;
   }
 
+  /* Mobile Sidebar - Volledig verborgen standaard, alleen als overlay */
+  .sidebar {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 280px;
+    max-width: 85vw;
+    z-index: 2000;
+    transform: translateX(-100%);
+    transition: transform var(--transition-smooth);
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.2);
+    background: var(--color-bg-panel);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-right: 1px solid var(--color-border);
+  }
+
+  /* Sidebar open state */
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* Overlay backdrop */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 1999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-base);
+  }
+
+  .sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* Prevent body scroll when sidebar is open */
+  .app-layout.mobile-sidebar-open {
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .app-layout.mobile-sidebar-open .main-content {
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* Main content takes full width on mobile */
+  .main-content {
+    width: 100%;
+    margin-left: 0 !important;
+    padding: 0;
+  }
+
   .header {
     padding: var(--spacing-md) var(--spacing-md);
     position: sticky;
