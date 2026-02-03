@@ -186,11 +186,12 @@ function HomeContent() {
     };
 
     try {
-      // Timeout controller voor fetch (3 minuten timeout)
+      // Timeout controller voor fetch (6 minuten voor lange content zoals landing/blog)
       const controller = new AbortController();
+      const fetchTimeoutMs = 360000; // 6 minuten
       const timeoutId = setTimeout(() => {
         controller.abort();
-      }, 180000); // 3 minuten
+      }, fetchTimeoutMs);
 
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -238,7 +239,7 @@ function HomeContent() {
       let errorMessage = 'Er is een fout opgetreden bij het genereren van content';
       
       if (err.name === 'AbortError') {
-        errorMessage = 'De request duurde te lang (>3 minuten). Dit kan gebeuren bij complexe content. Probeer het opnieuw of gebruik een sneller model.';
+        errorMessage = 'De request duurde te lang (>6 minuten). Dit kan gebeuren bij complexe content. Probeer het opnieuw of gebruik een sneller model.';
       } else if (err.message) {
         errorMessage = err.message;
       }

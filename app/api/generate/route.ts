@@ -2703,10 +2703,10 @@ Gebruik deze afbeelding als basis voor je post. Beschrijf wat er op de afbeeldin
     const fullPrompt = `${baseInstruction}\n\n${filledTemplate}${imageContext}`;
 
     // Eerste call: maak draft (met retry logica)
-    // Blog content heeft langere timeout nodig (6 minuten voor lange blogs)
-    const isBlog = type === 'blog';
+    // Blog en landing hebben langere timeout nodig (6 min) vanwege complexe/lange content
+    const needsLongTimeout = type === 'blog' || type === 'landing';
     const useFastMode = fastMode === true; // Snelle modus voor snellere generatie
-    const contentTimeout = isBlog ? 360000 : (useFastMode ? 120000 : 180000); // Sneller timeout in fast mode
+    const contentTimeout = needsLongTimeout ? 360000 : (useFastMode ? 120000 : 180000); // 6 min voor blog/landing
     console.log(`Starting main content generation... (timeout: ${contentTimeout/1000}s, fastMode: ${useFastMode})`);
     let draftResponse: string;
     try {
