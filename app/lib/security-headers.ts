@@ -6,10 +6,10 @@ import type { NextRequest } from 'next/server';
  * Voegt belangrijke security headers toe aan alle responses
  */
 export function addSecurityHeaders(response: NextResponse): NextResponse {
-  // Content Security Policy
+  // Content Security Policy (vercel.live voor Vercel Live feedback)
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // unsafe-inline voor Next.js
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",

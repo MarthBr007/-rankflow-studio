@@ -3194,12 +3194,15 @@ Gebruik deze afbeelding als basis voor je post. Beschrijf wat er op de afbeeldin
         error: errorMessage.substring(0, 200),
       });
     }
+
+    // 503 bij ontbrekende/ongeldige config (API key), anders 500
+    const isConfigError = /API key|niet geconfigureerd|niet ondersteund/i.test(errorMessage);
+    const status = isConfigError ? 503 : 500;
     
-    // Zorg ervoor dat we altijd JSON teruggeven, geen HTML
     return NextResponse.json(
       { error: errorMessage },
       { 
-        status: 500,
+        status,
         headers: {
           'Content-Type': 'application/json',
         }

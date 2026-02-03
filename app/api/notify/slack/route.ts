@@ -125,7 +125,8 @@ export async function POST(req: NextRequest) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
   if (!webhookUrl) {
-    return NextResponse.json({ error: 'SLACK_WEBHOOK_URL ontbreekt' }, { status: 500 });
+    // Niet geconfigureerd: 200 met skipped, zodat de app niet breekt
+    return NextResponse.json({ ok: false, skipped: true, reason: 'SLACK_WEBHOOK_URL niet geconfigureerd' }, { status: 200 });
   }
 
   let body: SlackPayload;
