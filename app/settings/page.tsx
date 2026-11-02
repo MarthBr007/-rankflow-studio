@@ -77,7 +77,7 @@ export default function SettingsPage() {
   // AI Config state
   const [aiConfig, setAiConfig] = useState({
     apiKey: '',
-    model: 'gpt-4o-mini',
+    model: 'gpt-5.2',
     provider: 'openai',
   });
   const [hasApiKey, setHasApiKey] = useState(false);
@@ -101,7 +101,7 @@ export default function SettingsPage() {
   const [tenantConfig, setTenantConfig] = useState<TenantConfig>({
     organizationId: '',
     apiKey: '',
-    model: 'gpt-4o-mini',
+    model: 'gpt-5.2',
     provider: 'openai',
   });
   const [tenantStatus, setTenantStatus] = useState<TenantStatus>({ exists: false });
@@ -849,7 +849,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
       // API key wordt altijd leeg geladen (veiligheid), maar we weten of er een is via apiKeyLength
       setAiConfig({
         apiKey: '', // Laad niet de echte key (veiligheid)
-        model: data.model || 'gpt-5',
+        model: data.model || 'gpt-5.2',
         provider: data.provider || 'openai',
       });
       setHasApiKey(!!data.apiKeyLength);
@@ -916,7 +916,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
     try {
       const payload: any = {
         tenantId: tenantConfig.organizationId.trim(),
-        model: (tenantConfig.model || 'gpt-5').trim(),
+        model: (tenantConfig.model || 'gpt-5.2').trim(),
         provider: (tenantConfig.provider || 'openai').trim(),
       };
 
@@ -1194,7 +1194,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                             const newProvider = e.target.value;
                             // Reset model naar eerste geldige model voor nieuwe provider
                             const defaultModels: Record<string, string> = {
-                              openai: 'gpt-5',
+                              openai: 'gpt-5.2',
                               anthropic: 'claude-3-5-sonnet-20241022',
                               google: 'gemini-pro',
                             };
@@ -1221,6 +1221,7 @@ De meest complete, AI-era SEO set voor Broers Verhuur. Wordt automatisch toegepa
                         >
                           {aiConfig.provider === 'openai' && (
                             <>
+                              <option value="gpt-5.2">GPT-5.2</option>
                               <option value="gpt-5">GPT-5</option>
                               <option value="gpt-5-turbo">GPT-5 Turbo</option>
                               <option value="gpt-4o">GPT-4o</option>

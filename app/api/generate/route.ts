@@ -90,7 +90,7 @@ async function loadConfig() {
   if (process.env.OPENAI_API_KEY) {
     return {
       apiKey: process.env.OPENAI_API_KEY,
-      model: process.env.OPENAI_MODEL || 'gpt-5',
+      model: process.env.OPENAI_MODEL || 'gpt-5.2',
       provider: process.env.OPENAI_PROVIDER || 'openai',
     };
   }
@@ -107,7 +107,7 @@ async function loadConfig() {
     console.log('Config file niet gevonden of fout, gebruik lege fallback');
     return {
       apiKey: '',
-      model: 'gpt-5',
+      model: 'gpt-5.2',
       provider: 'openai',
     };
   }
@@ -158,16 +158,16 @@ Gebruik altijd deze schrijfstijl en tone of voice:
 - Schrijf in praktische en hedendaagse taal in de jij-vorm
 - Gebruik korte, duidelijke en directe zinnen
 - Combineer altijd informatie + advies + inspiratie in één tekst
-- Gebruik voorbeelden, situaties, locaties en scenario's zoals: thuis, tuinfeest, diner, kerst, feestdagen, kantoor, catering, borrel
+- Gebruik voorbeelden, situaties en scenario's die passen bij het opgegeven onderwerp (niet generiek: alleen servies/glaswerk als dat het onderwerp ís)
 - Schrijf oplossingsgericht en altijd vanuit de klant: jij huurt, wij regelen, we helpen mee
 - Gebruik deze elementen regelmatig: tips, uitleg, keuzes, stappen, scenario's, combinaties, materialen
-- Beschrijf concrete producten en materialen: servies, glazen, tafelkleden, bar, bloemstuk, verlichting, statafels, koelingen
+- Beschrijf concrete producten en materialen die bij het ONDERWERP horen (bij evenementen/horeca: servies, glazen; bij scholen: meubilair, tafels, stoelen; etc.)
 - Vermijd marketingwoorden en superlatieven zoals: premium, ultiem, beste, unieke beleving, luxe ervaring, topkwaliteit
 - Gebruik servicegerichte woorden: makkelijk, zonder gedoe, direct, wij regelen, combineren
 - De toon is vriendelijk, behulpzaam en inspirerend, niet verkoperig
 - Gebruik altijd regio's: Haarlem en de ingevulde extra regio's
 - Gebruik waar passend advies in stappen: hoe werkt het, hoe pak je het aan, hoe combineer je materialen, styling ideeën
-- Schrijf altijd vanuit beleving en ervaringen: diner, feest, aankleding, sfeer, setting, momenten, tafels, gasten
+- Schrijf altijd vanuit beleving en ervaringen passend bij het onderwerp (bijv. bij evenementen: diner, feest; bij scholen: examens, lessen, leerlingen)
 - gebruik geen streepjes in de uiteindelijke tekst
 
 ✅ RANKFLOW ADD-ON – SEO 2025 UITBREIDING (Optie A)
@@ -353,15 +353,30 @@ Gebruik dit format:
 // Specifieke landingspagina instructies (HOOGSTE PRIORITEIT)
 const LANDING_SPECIFIC_RULES = `BELANGRIJK - DEZE REGELS HEBBEN HOOGSTE PRIORITEIT:
 
+⚠️⚠️⚠️ VERBOD OP OFF-TOPIC INHOUD ⚠️⚠️⚠️
+- De HELE pagina moet uitsluitend over het opgegeven onderwerp ({{topic}}) gaan.
+- Gebruik GEEN voorbeelden, materialen of scenario's die niet bij dit onderwerp horen.
+- Bij onderwerp "Examen meubilair voor Middelbare Scholen": schrijf over schoolmeubilair, examentafels, stoelen, scholen – NIET over servies, glaswerk of feesten.
+- Bij onderwerp "servies" of "glaswerk": dan mag je servies/glaswerk gebruiken.
+- Alle producten, materialen, scenario's en interne links moeten passen bij het opgegeven onderwerp.
+
+⚠️⚠️⚠️ VLOEIENDHEID EN SAMENHANG – DE PAGINA MOET ALS ÉÉN GEHEEL LEZEN ⚠️⚠️⚠️
+- De hele pagina is één doorlopend verhaal: intro → benefits → scenario's → proces → contact. Geen losse blokken die naast elkaar staan.
+- Verweef het onderwerp ({{topic}}) en de scenario's uit de lijst ({{scenarios}}) in natuurlijke, vloeiende zinnen. Niet: eerst onderwerp noemen, dan vijf scenario's afvinken. Wel: zinnen waarin het onderwerp en de gelegenheden logisch samenkomen (bijv. "Of je nu [scenario 1] in Haarlem organiseert of [scenario 2] in {{region1}}, [onderwerp] huren maakt het eenvoudig.").
+- Elke alinea moet inhoudelijk aansluiten op de vorige. Gebruik overgangszinnen: "Daarnaast", "Daarmee", "Voor dat soort momenten", "Ook wanneer", "Naast... is...".
+- De lezer moet het gevoel hebben één artikel te lezen, niet een formulier waar per veld het onderwerp en vijf woorden zijn ingevuld. Schrijf dus alsof je één lopend betoog schrijft dat toevallig aan alle structuur- en SEO-regels voldoet.
+- Scenario's en regio's komen terug waar het past in het verhaal, niet als verplichte opsomming per sectie.
+
 ⚠️⚠️⚠️ KRITIEK: ONDERWERP / TOPIC IS HET FOCUS KEYWORD ⚠️⚠️⚠️
 - Het onderwerp dat wordt opgegeven ({{topic}}) IS ALTIJD het focus keyword
 - Als het onderwerp "glaswerk" is, dan is "glaswerk huren" het focus keyword, NIET "servies huren"
 - Als het onderwerp "tafelgerei" is, dan is "tafelgerei huren" het focus keyword, NIET iets anders
-- Het focus keyword MOET exact overeenkomen met het onderwerp + "huren"
+- Als het onderwerp "Examen meubilair voor Middelbare Scholen" is, dan is dat het onderwerp en focus – NIET "servies" of "glaswerk"
+- Het focus keyword MOET exact overeenkomen met het onderwerp + "huren" (of het onderwerp zelf als het geen verhuur-pagina is)
 - Gebruik NOOIT een ander woord dan het opgegeven onderwerp
 - VOORBEELD: Onderwerp = "glaswerk" → Focus keyword = "glaswerk huren" (NIET "servies huren", NIET "tafelgerei huren")
 - VOORBEELD: Onderwerp = "servies" → Focus keyword = "servies huren" (NIET "glaswerk huren")
-- Dit is de ALLERHOOGSTE PRIORITEIT - verkeerd focus keyword = onacceptabel
+- Dit is de ALLERHOOGSTE PRIORITEIT - verkeerd focus keyword of off-topic = onacceptabel
 
 STRUCTUUR (GEBASEERD OP ECHTE BROERS VERHUUR LANDINGSPAGINA'S):
 ⚠️ DEZE STRUCTUUR IS VERPLICHT EN MOET PRECIES WORDEN NAGELEEFD ⚠️
@@ -413,9 +428,9 @@ Regio's in de lopende tekst (VERPLICHT):
   - "borrel op kantoor in Amsterdam"
   - "diner thuis in Haarlem en omgeving"
 
-Scenario's (minimaal 5 verplicht, gegroepeerd):
+Scenario's (minimaal 5 verplicht, verweven in de tekst):
 Gebruik uitsluitend scenario's uit deze lijst: {{scenarios}}.
-Gebruik minimaal vijf scenario's uit deze lijst in de tekst.
+Verweef minimaal vijf van deze scenario's in vloeiende zinnen (bijv. "Of je nu een diner thuis in Haarlem organiseert of een borrel op kantoor in {{region1}}, ..."). Geen losse opsomming of rijtje; elk scenario komt terug waar het logisch in het verhaal past.
 Verzin geen nieuwe scenario's.
 
 Servicebeloften (minimaal 2 verplicht):
@@ -1432,7 +1447,7 @@ async function callAi(prompt: string, isImprovement = false, timeoutMs?: number,
   
   const override = requestOverrides;
   const apiKey = override?.apiKey || config.apiKey || process.env.OPENAI_API_KEY;
-  let model = override?.model || config.model || process.env.OPENAI_MODEL || 'gpt-5';
+  let model = override?.model || config.model || process.env.OPENAI_MODEL || 'gpt-5.2';
   const provider = override?.provider || config.provider || 'openai';
   
   // Auto-select sneller model in fast mode
@@ -2498,7 +2513,7 @@ export async function POST(request: NextRequest) {
     
     // Update log data with actual provider/model
     logData.provider = requestOverrides.provider || 'openai';
-    logData.model = requestOverrides.model || 'gpt-5';
+    logData.model = requestOverrides.model || 'gpt-5.2';
     logData.organizationId = requestOverrides.organizationId;
 
     // Refine mode: verbeter bestaande content
@@ -2700,7 +2715,18 @@ Gebruik deze afbeelding als basis voor je post. Beschrijf wat er op de afbeeldin
 
     // Bouw prompt op met enriched fields (inclusief scenarios en image context)
     const filledTemplate = replacePlaceholders(template, { ...enrichedFields, language: language || 'nl' });
-    const fullPrompt = `${baseInstruction}\n\n${filledTemplate}${imageContext}`;
+    // Strikte onderwerp-controle + vloeiendheid: alle content over het onderwerp, als één samenhangend geheel
+    const topicAdherence = `
+⚠️⚠️⚠️ ONDERWERP-CONTROLE – HOOGSTE PRIORITEIT ⚠️⚠️⚠️
+Het onderwerp voor deze pagina is: "${topic}".
+- De HELE content (tekst, voorbeelden, materialen, scenario's, FAQ, CTA) moet uitsluitend over dit onderwerp gaan.
+- Gebruik GEEN voorbeelden over servies, glaswerk, tafelgerei, feesten of horeca tenzij het opgegeven onderwerp dat expliciet is.
+- Gebruik wél producten, materialen en scenario's die bij dit onderwerp horen (bijv. bij "Examen meubilair": schoolmeubilair, examentafels, stoelen, scholen; bij "servies": borden, glazen, feesten).
+- Als de gebruiker "Examen meubilair voor Middelbare Scholen" opgeeft: schrijf over examenfaciliteiten, schoolmeubilair, tafels en stoelen voor scholen – NIET over servies of feesten.
+
+VLOEIENDHEID: Schrijf de pagina als één doorlopend, samenhangend verhaal. Verweef onderwerp en scenario's in natuurlijke zinnen; geen losse opsomming of afvinklijst. Elke alinea sluit logisch aan op de vorige.
+`;
+    const fullPrompt = `${baseInstruction}\n\n${topicAdherence}\n${filledTemplate}${imageContext}`;
 
     // Eerste call: maak draft (met retry logica)
     // Blog en landing hebben langere timeout nodig (6 min) vanwege complexe/lange content

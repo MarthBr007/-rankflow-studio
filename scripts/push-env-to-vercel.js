@@ -67,7 +67,7 @@ function main() {
 
   for (const key of toPush) {
     const value = env[key];
-    const r = spawnSync('npx', ['vercel', 'env', 'add', key, 'production'], {
+    let r = spawnSync('npx', ['vercel', 'env', 'add', key, 'production'], {
       cwd: PROJECT_ROOT,
       input: value,
       encoding: 'utf8',
@@ -77,7 +77,28 @@ function main() {
     if (r.status === 0) {
       console.log(`✅ ${key}`);
     } else if (out.includes('already exists') || out.includes('Duplicate')) {
-      console.log(`⏭️  ${key} (bestaat al)`);
+      // Bestaande var bijwerken: verwijderen en opnieuw toevoegen met waarde uit .env.local
+      const rm = spawnSync('npx', ['vercel', 'env', 'rm', key, 'production', '--yes'], {
+        cwd: PROJECT_ROOT,
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      if (rm.status === 0) {
+        r = spawnSync('npx', ['vercel', 'env', 'add', key, 'production'], {
+          cwd: PROJECT_ROOT,
+          input: value,
+          encoding: 'utf8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        if (r.status === 0) {
+          console.log(`✅ ${key} (bijgewerkt)`);
+        } else {
+          if (r.stderr) process.stderr.write(r.stderr);
+          console.error(`❌ ${key} bijwerken mislukt (code ${r.status})`);
+        }
+      } else {
+        console.log(`⏭️  ${key} (bestaat al, niet bijgewerkt)`);
+      }
     } else {
       if (r.stderr) process.stderr.write(r.stderr);
       console.error(`❌ ${key} mislukt (code ${r.status})`);

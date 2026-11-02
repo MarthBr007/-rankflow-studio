@@ -20,14 +20,14 @@ async function loadConfig() {
     if (process.env.OPENAI_API_KEY) {
       return {
         apiKey: process.env.OPENAI_API_KEY,
-        model: process.env.OPENAI_MODEL || 'gpt-5',
+        model: process.env.OPENAI_MODEL || 'gpt-5.2',
         provider: process.env.OPENAI_PROVIDER || 'openai',
       };
     }
     // Default config
     return {
       apiKey: '',
-      model: 'gpt-5',
+      model: 'gpt-5.2',
       provider: 'openai',
     };
   }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     // Valideer model op basis van provider
     const validModels: Record<string, string[]> = {
-      openai: ['gpt-5', 'gpt-5-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+      openai: ['gpt-5.2', 'gpt-5', 'gpt-5-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
       anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
       google: ['gemini-pro', 'gemini-pro-vision'],
     };

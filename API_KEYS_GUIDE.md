@@ -101,3 +101,48 @@ API keys zijn unieke codes die je nodig hebt om toegang te krijgen tot AI servic
 
 De tenant configuratie wordt versleuteld opgeslagen in de database en wordt automatisch gebruikt wanneer je content genereert met die `organizationId`.
 
+---
+
+## Dezelfde waarden op Vercel gebruiken
+
+Als je lokaal in `.env.local` al alles hebt staan, kun je die **variabelnamen en waarden** overnemen naar Vercel.
+
+### Stappen
+
+1. Ga naar [vercel.com](https://vercel.com) → jouw project → **Settings** → **Environment Variables**.
+2. Voeg voor **Production** (en eventueel Preview) deze variabelen toe. De **waarde** kopieer je uit je eigen `.env.local` (niet hier uit de docs):
+
+| Naam | Waar je de waarde vandaan haalt |
+|------|---------------------------------|
+| `OPENAI_API_KEY` | Regel in .env.local met OPENAI_API_KEY=... |
+| `OPENAI_MODEL` | Regel met OPENAI_MODEL=... (bijv. gpt-4o-mini) |
+| `DATABASE_URL` | Regel met DATABASE_URL="..." (Neon connection string) |
+| `SLACK_WEBHOOK_URL` | Regel met SLACK_WEBHOOK_URL=... |
+
+3. Voor sessie/encryptie op Vercel heb je ook nodig (als je die nog niet hebt):
+   - `SESSION_SECRET` of `NEXTAUTH_SECRET` – willekeurige lange string
+   - `ENCRYPTION_KEY` – 32 bytes hex (bijv. gegenereerd met `openssl rand -hex 32`)
+
+4. Klik op **Save** en voer daarna een **Redeploy** uit (Deployments → … bij laatste deploy → Redeploy).
+
+Daarna gebruikt Vercel dezelfde configuratie als lokaal (met de waarden die jij in het dashboard plakt).
+
+### Automatisch vanuit .env.local (CLI)
+
+Je kunt de waarden uit `.env.local` in één keer naar Vercel pushen:
+
+1. Zorg dat je bent ingelogd en het project gekoppeld hebt:
+   ```bash
+   npx vercel login
+   npx vercel link
+   ```
+2. Voer het script uit (vanuit de projectmap):
+   ```bash
+   node scripts/push-env-to-vercel.js
+   ```
+3. Daarna opnieuw deployen:
+   ```bash
+   npx vercel --prod
+   ```
+
+Het script leest `.env.local` en zet `OPENAI_API_KEY`, `OPENAI_MODEL`, `DATABASE_URL`, `SLACK_WEBHOOK_URL` (en eventueel `SESSION_SECRET`, `NEXTAUTH_SECRET`, `ENCRYPTION_KEY`) op Vercel voor **Production**. Bestaande variabelen worden niet overschreven; die kun je in het Vercel-dashboard aanpassen of eerst daar verwijderen.

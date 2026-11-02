@@ -8,7 +8,7 @@ async function loadConfig() {
   if (process.env.OPENAI_API_KEY) {
     return {
       apiKey: process.env.OPENAI_API_KEY,
-      model: process.env.OPENAI_MODEL || 'gpt-5',
+      model: process.env.OPENAI_MODEL || 'gpt-5.2',
       provider: process.env.OPENAI_PROVIDER || 'openai',
     };
   }
@@ -20,7 +20,7 @@ async function loadConfig() {
   } catch {
     return {
       apiKey: '',
-      model: 'gpt-5',
+      model: 'gpt-5.2',
       provider: 'openai',
     };
   }
